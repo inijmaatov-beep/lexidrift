@@ -1,0 +1,2975 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LexiSprint — Speed Vocabulary Trainer</title>
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Google Font: JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&display=swap" rel="stylesheet">
+
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            mono: ['"JetBrains Mono"', 'ui-monospace', 'monospace'],
+          },
+          colors: {
+            theme: {
+              bg: 'var(--color-bg)',
+              card: 'var(--color-card)',
+              dropdown: 'var(--color-dropdown)',
+              sub: 'var(--color-sub)',
+              text: 'var(--color-text)',
+              main: 'var(--color-main)',
+              error: 'var(--color-error)',
+              accent: 'var(--color-accent)',
+            }
+          },
+          keyframes: {
+            floatBonus: {
+              '0%': { opacity: '1', transform: 'translateY(0) scale(1)' },
+              '100%': { opacity: '0', transform: 'translateY(-30px) scale(1.2)' }
+            },
+            shake: {
+              '0%, 100%': { transform: 'translateX(0)' },
+              '20%, 60%': { transform: 'translateX(-6px)' },
+              '40%, 80%': { transform: 'translateX(6px)' }
+            },
+            flamePulse: {
+              '0%, 100%': { transform: 'scale(1)', filter: 'drop-shadow(0 0 6px rgba(226,183,20,0.5))' },
+              '50%': { transform: 'scale(1.12)', filter: 'drop-shadow(0 0 16px rgba(226,183,20,0.95))' }
+            }
+          },
+          animation: {
+            floatBonus: 'floatBonus 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards',
+            errorShake: 'shake 0.28s ease-in-out',
+            flame: 'flamePulse 1.2s infinite ease-in-out'
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    /* Theme Definitions */
+    :root {
+      /* Serika Dark (Default) */
+      --color-bg: #323437;
+      --color-card: #2c2e31;
+      --color-dropdown: #242628;
+      --color-sub: #646669;
+      --color-text: #d1d0c5;
+      --color-main: #e2b714;
+      --color-error: #ca4754;
+      --color-accent: #f0cd49;
+    }
+    [data-theme="dracula"] {
+      --color-bg: #282a36;
+      --color-card: #21222c;
+      --color-dropdown: #191a21;
+      --color-sub: #6272a4;
+      --color-text: #f8f8f2;
+      --color-main: #bd93f9;
+      --color-error: #ff5555;
+      --color-accent: #ff79c6;
+    }
+    [data-theme="carbon"] {
+      --color-bg: #1f1f23;
+      --color-card: #18181b;
+      --color-dropdown: #121214;
+      --color-sub: #71717a;
+      --color-text: #f4f4f5;
+      --color-main: #f97316;
+      --color-error: #ef4444;
+      --color-accent: #fb923c;
+    }
+    [data-theme="cyberpunk"] {
+      --color-bg: #120e29;
+      --color-card: #1b163d;
+      --color-dropdown: #110e26;
+      --color-sub: #70689b;
+      --color-text: #e6e4ff;
+      --color-main: #00f0ff;
+      --color-error: #ff0055;
+      --color-accent: #ffe600;
+    }
+    [data-theme="paper"] {
+      --color-bg: #eeeeee;
+      --color-card: #e0e0e0;
+      --color-dropdown: #d5d5d5;
+      --color-sub: #888888;
+      --color-text: #333333;
+      --color-main: #2b7a78;
+      --color-error: #d9534f;
+      --color-accent: #3aafa9;
+    }
+
+    body {
+      background-color: var(--color-bg);
+      color: var(--color-text);
+      font-family: 'JetBrains Mono', monospace;
+      transition: background-color 0.2s ease, color 0.2s ease;
+      user-select: none;
+    }
+
+    input::placeholder {
+      color: var(--color-sub);
+      opacity: 0.4;
+    }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar {
+      width: 5px;
+      height: 5px;
+    }
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: var(--color-sub);
+      border-radius: 9999px;
+      opacity: 0.5;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: var(--color-main);
+    }
+  </style>
+</head>
+<body class="min-h-full flex flex-col justify-between p-3 sm:p-6 lg:p-8">
+
+  <!-- Toast Notification Container -->
+  <div id="toastContainer" class="fixed top-4 right-4 z-50 flex flex-col gap-2 pointer-events-none"></div>
+
+  <!-- Header -->
+  <header class="w-full max-w-5xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4 pb-2">
+    <!-- Brand -->
+    <div class="flex items-center space-x-3 cursor-pointer group" id="brandReset">
+      <div class="w-9 h-9 rounded-xl bg-theme-main flex items-center justify-center font-black text-theme-bg text-xl shadow-lg group-hover:rotate-12 transition-transform duration-200">
+        ⚡
+      </div>
+      <div>
+        <div class="text-2xl font-extrabold tracking-tight text-theme-text flex items-center gap-1.5">
+          lexi<span class="text-theme-main">sprint</span>
+          <span class="text-[10px] uppercase font-bold tracking-widest px-1.5 py-0.5 rounded bg-theme-card text-theme-sub border border-theme-sub/20">pro</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Quick Stats -->
+    <div class="flex items-center gap-3 text-xs text-theme-sub">
+      <div class="flex items-center gap-1.5 bg-theme-card px-3 py-1.5 rounded-xl border border-theme-sub/20" title="Daily training streak">
+        <span class="text-orange-400">🔥</span>
+        <span>Daily Streak: <b id="dailyStreakDisplay" class="text-theme-text font-bold">1</b>d</span>
+      </div>
+      <button id="openImportBtn" class="flex items-center gap-1 bg-theme-card hover:bg-theme-main hover:text-theme-bg px-3 py-1.5 rounded-xl border border-theme-sub/20 text-theme-text transition duration-150 cursor-pointer">
+        <span>📥</span>
+        <span>Custom Deck</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- Collapsible Compact Dropdown Toolbar -->
+  <section class="w-full max-w-5xl mx-auto my-3 relative z-30">
+    <div class="bg-theme-card/90 backdrop-blur-md rounded-2xl p-2 px-3 sm:px-4 border border-theme-sub/20 flex flex-wrap items-center justify-center sm:justify-start gap-2 text-xs">
+      
+      <!-- 1. Language Dropdown -->
+      <div class="relative dropdown-group">
+        <button id="langMenuBtn" class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-theme-bg hover:border-theme-main border border-theme-sub/20 text-theme-text font-medium transition cursor-pointer">
+          <span class="text-theme-sub">🌐 Lang:</span>
+          <b id="activeLangLabel" class="text-theme-main font-bold">Russian</b>
+          <span class="text-[10px] text-theme-sub ml-0.5">▼</span>
+        </button>
+        <div id="langMenuDropdown" class="hidden absolute left-0 mt-2 w-52 bg-theme-dropdown rounded-2xl border border-theme-sub/20 shadow-2xl p-2 flex flex-col gap-1 z-40 max-h-64 overflow-y-auto">
+          <!-- Populated by JS -->
+        </div>
+      </div>
+
+      <!-- 2. Game Mode Dropdown -->
+      <div class="relative dropdown-group">
+        <button id="modeMenuBtn" class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-theme-bg hover:border-theme-main border border-theme-sub/20 text-theme-text font-medium transition cursor-pointer">
+          <span class="text-theme-sub">⚙️ Mode:</span>
+          <b id="activeModeLabel" class="text-theme-main font-bold">Survival (30s)</b>
+          <span class="text-[10px] text-theme-sub ml-0.5">▼</span>
+        </button>
+        <div id="modeMenuDropdown" class="hidden absolute left-0 mt-2 w-56 bg-theme-dropdown rounded-2xl border border-theme-sub/20 shadow-2xl p-2 flex flex-col gap-1 z-40">
+          <button data-mode="survival" class="mode-item text-left px-3 py-2 rounded-xl text-xs hover:bg-theme-main hover:text-theme-bg font-medium transition">⏱ Survival (30s, +4s)</button>
+          <button data-mode="survival60" class="mode-item text-left px-3 py-2 rounded-xl text-xs hover:bg-theme-main hover:text-theme-bg font-medium transition">⏱ Survival (60s, +4s)</button>
+          <button data-mode="hardcore" class="mode-item text-left px-3 py-2 rounded-xl text-xs hover:bg-theme-main hover:text-theme-bg font-medium transition">💀 Hardcore (15s, 1 strike)</button>
+          <button data-mode="sprint" class="mode-item text-left px-3 py-2 rounded-xl text-xs hover:bg-theme-main hover:text-theme-bg font-medium transition">🏁 Sprint (25 words)</button>
+          <button data-mode="zen" class="mode-item text-left px-3 py-2 rounded-xl text-xs hover:bg-theme-main hover:text-theme-bg font-medium transition">🧘 Zen (No timer)</button>
+          <button data-mode="mistakes" id="mistakesDropdownItem" class="mode-item text-left px-3 py-2 rounded-xl text-xs hover:bg-theme-main hover:text-theme-bg font-medium transition hidden">🔁 Mistakes Review (<span id="mistakeBadge">0</span>)</button>
+        </div>
+      </div>
+
+      <!-- 3. Vocabulary Level / Pack Dropdown -->
+      <div class="relative dropdown-group">
+        <button id="packMenuBtn" class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-theme-bg hover:border-theme-main border border-theme-sub/20 text-theme-text font-medium transition cursor-pointer">
+          <span class="text-theme-sub">📊 Pack:</span>
+          <b id="activePackLabel" class="text-theme-main font-bold">B1-B2 Core</b>
+          <span class="text-[10px] text-theme-sub ml-0.5">▼</span>
+        </button>
+        <div id="packMenuDropdown" class="hidden absolute left-0 mt-2 w-52 bg-theme-dropdown rounded-2xl border border-theme-sub/20 shadow-2xl p-2 flex flex-col gap-1 z-40">
+          <button data-pack="a2" class="pack-item text-left px-3 py-2 rounded-xl text-xs hover:bg-theme-main hover:text-theme-bg font-medium transition">🌱 A2 Elementary</button>
+          <button data-pack="b2" class="pack-item text-left px-3 py-2 rounded-xl text-xs hover:bg-theme-main hover:text-theme-bg font-medium transition">⚡ B1-B2 Core</button>
+          <button data-pack="c1" class="pack-item text-left px-3 py-2 rounded-xl text-xs hover:bg-theme-main hover:text-theme-bg font-medium transition">🔥 C1 Advanced</button>
+          <button data-pack="tech" class="pack-item text-left px-3 py-2 rounded-xl text-xs hover:bg-theme-main hover:text-theme-bg font-medium transition">💻 IT & Tech</button>
+          <button data-pack="travel" class="pack-item text-left px-3 py-2 rounded-xl text-xs hover:bg-theme-main hover:text-theme-bg font-medium transition">✈️ Travel & Airport</button>
+          <button data-pack="business" class="pack-item text-left px-3 py-2 rounded-xl text-xs hover:bg-theme-main hover:text-theme-bg font-medium transition">💼 Business & Career</button>
+        </div>
+      </div>
+
+      <!-- 4. Direction Toggle Button -->
+      <button id="directionToggleBtn" class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-theme-bg hover:border-theme-main border border-theme-sub/20 text-theme-text font-medium transition cursor-pointer">
+        <span class="text-theme-sub">⇄</span>
+        <b id="activeDirectionLabel" class="text-theme-main font-bold">EN ➜ RU</b>
+      </button>
+
+      <!-- 5. Sound Switch Dropdown -->
+      <div class="relative dropdown-group">
+        <button id="soundMenuBtn" class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-theme-bg hover:border-theme-main border border-theme-sub/20 text-theme-text font-medium transition cursor-pointer">
+          <span>⌨️</span>
+          <b id="activeSoundLabel" class="text-theme-text font-medium">MX Brown</b>
+          <span class="text-[10px] text-theme-sub ml-0.5">▼</span>
+        </button>
+        <div id="soundMenuDropdown" class="hidden absolute right-0 sm:left-0 mt-2 w-44 bg-theme-dropdown rounded-2xl border border-theme-sub/20 shadow-2xl p-2 flex flex-col gap-1 z-40">
+          <button data-sound="blue" class="sound-item text-left px-3 py-2 rounded-xl text-xs hover:bg-theme-main hover:text-theme-bg font-medium transition">Cherry MX Blue</button>
+          <button data-sound="brown" class="sound-item text-left px-3 py-2 rounded-xl text-xs hover:bg-theme-main hover:text-theme-bg font-medium transition">Cherry MX Brown</button>
+          <button data-sound="cream" class="sound-item text-left px-3 py-2 rounded-xl text-xs hover:bg-theme-main hover:text-theme-bg font-medium transition">Cream (Thock)</button>
+          <button data-sound="none" class="sound-item text-left px-3 py-2 rounded-xl text-xs hover:bg-theme-main hover:text-theme-bg font-medium transition">Mute</button>
+        </div>
+      </div>
+
+      <!-- 6. Theme Dropdown -->
+      <div class="relative dropdown-group">
+        <button id="themeMenuBtn" class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-theme-bg hover:border-theme-main border border-theme-sub/20 text-theme-text font-medium transition cursor-pointer">
+          <span>🎨</span>
+          <b id="activeThemeLabel" class="text-theme-text font-medium">Serika</b>
+          <span class="text-[10px] text-theme-sub ml-0.5">▼</span>
+        </button>
+        <div id="themeMenuDropdown" class="hidden absolute right-0 mt-2 w-44 bg-theme-dropdown rounded-2xl border border-theme-sub/20 shadow-2xl p-2 flex flex-col gap-1 z-40">
+          <button data-theme="serika" class="theme-item text-left px-3 py-2 rounded-xl text-xs hover:bg-theme-main hover:text-theme-bg font-medium transition">Serika Dark</button>
+          <button data-theme="dracula" class="theme-item text-left px-3 py-2 rounded-xl text-xs hover:bg-theme-main hover:text-theme-bg font-medium transition">Dracula</button>
+          <button data-theme="carbon" class="theme-item text-left px-3 py-2 rounded-xl text-xs hover:bg-theme-main hover:text-theme-bg font-medium transition">Carbon Orange</button>
+          <button data-theme="cyberpunk" class="theme-item text-left px-3 py-2 rounded-xl text-xs hover:bg-theme-main hover:text-theme-bg font-medium transition">Cyberpunk</button>
+          <button data-theme="paper" class="theme-item text-left px-3 py-2 rounded-xl text-xs hover:bg-theme-main hover:text-theme-bg font-medium transition">Paper Light</button>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- Main Game Stage -->
+  <main class="w-full max-w-4xl mx-auto flex-1 flex flex-col justify-center items-center py-4 relative min-h-[460px]">
+
+    <!-- Live HUD Display (Active during gameplay) -->
+    <div id="liveHud" class="w-full max-w-xl flex items-center justify-between px-4 mb-4 select-none opacity-20 pointer-events-none transition-opacity duration-200">
+      <div class="flex items-center space-x-2">
+        <span id="streakIcon" class="text-xl transition-transform duration-200">⚡</span>
+        <span class="text-xs text-theme-sub">Streak: <b id="streakCounter" class="text-theme-text font-bold">0</b></span>
+      </div>
+
+      <div class="flex items-center space-x-4 text-xs text-theme-sub">
+        <div id="hudSkipsContainer" class="flex items-center space-x-1">
+          <span>Skips:</span>
+          <b id="hudSkipsCounter" class="text-theme-main font-bold">5</b>
+        </div>
+        <div>
+          High Score: <b id="hudHighScore" class="text-theme-main font-bold">0</b>
+        </div>
+      </div>
+
+      <div class="relative flex items-center space-x-1.5">
+        <span id="mainTimer" class="text-3xl sm:text-4xl font-black text-theme-main tabular-nums tracking-tight">30.0</span>
+        <span id="timerUnit" class="text-xs text-theme-sub font-semibold">s</span>
+        <div id="bonusFlyAnchor" class="absolute -top-6 left-4 pointer-events-none"></div>
+      </div>
+    </div>
+
+    <!-- STRICT PRE-GAME HERO / START SCREEN (GAME DOES NOT RUN BEFORE THIS IS CLICKED) -->
+    <div id="startBannerOverlay" class="w-full max-w-xl bg-theme-card/95 border-2 border-theme-main/40 rounded-3xl p-8 sm:p-10 shadow-2xl flex flex-col items-center justify-center text-center space-y-6 z-20 backdrop-blur-sm transition-all duration-200">
+      <div class="w-16 h-16 rounded-3xl bg-theme-main/10 border-2 border-theme-main flex items-center justify-center text-3xl shadow-inner animate-pulse">
+        ⚡
+      </div>
+
+      <div>
+        <h2 class="text-3xl sm:text-4xl font-black tracking-tight text-theme-text">Ready to Sprint?</h2>
+        <p class="text-xs sm:text-sm text-theme-sub mt-2 max-w-md">Type the correct translation or accepted synonym before time runs out. Correct answers add extra time.</p>
+      </div>
+
+      <!-- Config Summary Badges on Start Card -->
+      <div class="flex flex-wrap items-center justify-center gap-2 text-[11px] text-theme-sub font-medium">
+        <span class="px-2.5 py-1 bg-theme-bg rounded-lg border border-theme-sub/20" id="badgeSummaryLang">🌐 Russian</span>
+        <span class="px-2.5 py-1 bg-theme-bg rounded-lg border border-theme-sub/20" id="badgeSummaryMode">⏱ Survival</span>
+        <span class="px-2.5 py-1 bg-theme-bg rounded-lg border border-theme-sub/20" id="badgeSummaryPack">⚡ B1-B2 Core</span>
+      </div>
+
+      <!-- Big Obvious START GAME Button -->
+      <button id="hugeStartBtn" class="w-full sm:w-80 bg-theme-main text-theme-bg hover:brightness-110 active:scale-95 transition font-black text-xl sm:text-2xl py-5 px-8 rounded-2xl shadow-xl shadow-theme-main/20 flex items-center justify-center space-x-3 group cursor-pointer border-2 border-theme-main">
+        <span>START GAME</span>
+        <kbd class="text-xs uppercase bg-black/25 px-2.5 py-1 rounded font-mono font-bold tracking-widest group-hover:bg-black/35">SPACE / ENTER</kbd>
+      </button>
+
+      <div class="text-xs text-theme-sub flex items-center gap-3">
+        <span><b class="text-theme-text">Enter</b> submit</span>
+        <span>•</span>
+        <span><b class="text-theme-text">Tab</b> skip</span>
+        <span>•</span>
+        <span><b class="text-theme-text">Esc</b> restart</span>
+      </div>
+    </div>
+
+    <!-- Active Card Arena (Hidden until START is clicked) -->
+    <div id="gameArena" class="w-full max-w-xl flex flex-col items-center justify-center hidden">
+      <!-- Target Word Title & Pronounce Button -->
+      <div class="relative flex items-center justify-center space-x-3 mb-2">
+        <h1 id="wordDisplay" class="text-4xl sm:text-6xl font-extrabold tracking-wide text-theme-text transition-transform duration-150">
+          dirty
+        </h1>
+        <button id="voiceBtn" class="p-2.5 rounded-xl text-theme-sub hover:text-theme-main hover:bg-theme-card transition cursor-pointer" title="Pronounce word">
+          <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77zm-4 0v17.54l-5-5H1V8.23h4l5-5zm8 8.77c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02z"/></svg>
+        </button>
+      </div>
+
+      <!-- Context Example Sentence -->
+      <div id="exampleSentence" class="text-xs sm:text-sm text-theme-sub italic mb-5 max-w-md text-center px-2">
+        "His boots were completely dirty after the rain."
+      </div>
+
+      <!-- Hint Reveal -->
+      <div id="hintRevealBox" class="h-6 mb-3 flex items-center justify-center text-xs font-semibold text-theme-main opacity-0 transition-opacity duration-200">
+        <span id="hintLetters"></span>
+      </div>
+
+      <!-- Input Field -->
+      <div class="w-full relative">
+        <input
+          type="text"
+          id="typingInput"
+          autocomplete="off"
+          autocorrect="off"
+          autocapitalize="off"
+          spellcheck="false"
+          placeholder="type translation..."
+          class="w-full bg-theme-card text-theme-text text-xl sm:text-3xl font-bold text-center py-4 px-6 rounded-2xl border-2 border-transparent focus:border-theme-main focus:outline-none transition shadow-2xl placeholder:text-theme-sub/40"
+        />
+        <div id="inputNotice" class="absolute -top-3.5 right-4 px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider hidden"></div>
+      </div>
+
+      <!-- Shortcuts Legend -->
+      <div class="w-full flex items-center justify-between text-[11px] text-theme-sub mt-4 px-2 select-none">
+        <div class="flex items-center space-x-3">
+          <span><kbd class="text-theme-text bg-theme-card px-1.5 py-0.5 rounded font-mono">Enter</kbd> submit</span>
+          <button id="skipActionBtn" class="flex items-center space-x-1 hover:text-theme-text transition cursor-pointer select-none">
+            <kbd class="text-theme-text bg-theme-card px-1.5 py-0.5 rounded font-mono">Tab</kbd>
+            <span id="skipBtnLabel">skip (5 left)</span>
+          </button>
+        </div>
+        <button id="hintBtn" class="flex items-center space-x-1 hover:text-theme-text transition cursor-pointer">
+          <kbd class="text-theme-text bg-theme-card px-1.5 py-0.5 rounded font-mono">Ctrl+Space</kbd>
+          <span>hint (-2s)</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Results Overlay Screen -->
+    <div id="resultsScreen" class="w-full max-w-2xl bg-theme-card rounded-3xl p-6 sm:p-8 border border-theme-sub/20 shadow-2xl hidden z-20">
+      <div class="flex items-center justify-between border-b border-theme-sub/20 pb-4 mb-6">
+        <div>
+          <span id="resultSubHeader" class="text-xs uppercase font-extrabold tracking-widest text-theme-main">Session Ended</span>
+          <h2 class="text-2xl sm:text-3xl font-extrabold text-theme-text">Session Results</h2>
+        </div>
+        <button id="shareScoreBtn" class="flex items-center space-x-2 bg-theme-bg hover:bg-theme-main hover:text-theme-bg px-4 py-2 rounded-xl text-xs font-bold transition border border-theme-sub/20 cursor-pointer">
+          <span>📋 Copy Score Card</span>
+        </button>
+      </div>
+
+      <!-- Stats Grid -->
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+        <div class="bg-theme-bg/60 p-3.5 rounded-2xl border border-theme-sub/10">
+          <div class="text-[10px] text-theme-sub uppercase font-bold tracking-wider">Words</div>
+          <div id="resWordsCount" class="text-3xl font-black text-theme-main tabular-nums">0</div>
+        </div>
+        <div class="bg-theme-bg/60 p-3.5 rounded-2xl border border-theme-sub/10">
+          <div class="text-[10px] text-theme-sub uppercase font-bold tracking-wider">Speed (WPM)</div>
+          <div id="resWpm" class="text-3xl font-black text-theme-text tabular-nums">0</div>
+        </div>
+        <div class="bg-theme-bg/60 p-3.5 rounded-2xl border border-theme-sub/10">
+          <div class="text-[10px] text-theme-sub uppercase font-bold tracking-wider">Accuracy</div>
+          <div id="resAccuracy" class="text-3xl font-black text-theme-text tabular-nums">100%</div>
+        </div>
+        <div class="bg-theme-bg/60 p-3.5 rounded-2xl border border-theme-sub/10">
+          <div class="text-[10px] text-theme-sub uppercase font-bold tracking-wider">Max Streak</div>
+          <div id="resMaxStreak" class="text-3xl font-black text-orange-400 tabular-nums">0</div>
+        </div>
+      </div>
+
+      <!-- WPM Speed Curve Graph -->
+      <div class="mb-6">
+        <div class="flex items-center justify-between text-xs text-theme-sub mb-2">
+          <span class="font-bold uppercase tracking-wider text-[10px]">WPM Speed Curve over time</span>
+          <span id="resGraphPeak" class="text-theme-main font-semibold">Peak: 0 WPM</span>
+        </div>
+        <div class="w-full h-32 bg-theme-bg/50 rounded-2xl p-2 border border-theme-sub/10 relative overflow-hidden">
+          <canvas id="wpmChart" class="w-full h-full"></canvas>
+        </div>
+      </div>
+
+      <!-- Round Words Review -->
+      <div class="mb-6">
+        <div class="flex items-center justify-between text-xs text-theme-sub mb-2 font-bold uppercase tracking-wider text-[10px]">
+          <span>Review Words</span>
+          <span id="resReviewSummary">0 mistakes</span>
+        </div>
+        <div id="roundWordList" class="max-h-36 overflow-y-auto space-y-1.5 pr-1 text-xs"></div>
+      </div>
+
+      <!-- Controls -->
+      <div class="flex flex-col sm:flex-row items-center gap-3 pt-2">
+        <button id="quickRestartBtn" class="w-full sm:flex-1 bg-theme-main text-theme-bg font-black text-base py-3.5 px-6 rounded-2xl hover:opacity-95 active:scale-95 transition shadow-lg shadow-theme-main/20 flex items-center justify-center space-x-2 cursor-pointer">
+          <span>Play Again</span>
+          <kbd class="text-xs bg-black/20 px-2 py-0.5 rounded font-mono font-bold">[Space or Enter]</kbd>
+        </button>
+        <button id="trainMistakesBtn" class="w-full sm:w-auto bg-theme-bg hover:bg-theme-error hover:text-white px-5 py-3.5 rounded-2xl text-xs font-bold border border-theme-sub/20 transition cursor-pointer hidden">
+          Practice Mistakes
+        </button>
+      </div>
+    </div>
+  </main>
+
+  <!-- Custom Word Import Modal -->
+  <div id="importModal" class="fixed inset-0 bg-black/75 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-theme-card w-full max-w-lg rounded-3xl p-6 border border-theme-sub/20 shadow-2xl">
+      <div class="flex items-center justify-between pb-3 border-b border-theme-sub/20 mb-4">
+        <h3 class="text-lg font-bold text-theme-text">Import Custom Deck</h3>
+        <button id="closeImportBtn" class="text-theme-sub hover:text-theme-text text-xl cursor-pointer">✕</button>
+      </div>
+      <p class="text-xs text-theme-sub mb-3">
+        Enter one term pair per line in format: <br>
+        <code class="text-theme-main font-mono">word - translation1, translation2</code>
+      </p>
+      <textarea
+        id="customImportArea"
+        rows="6"
+        placeholder="resilient - стойкий, живучий&#10;scrutinize - examine, inspect, исследовать&#10;deploy - развернуть, внедрить"
+        class="w-full bg-theme-bg p-3 rounded-2xl text-xs font-mono text-theme-text border border-theme-sub/20 focus:border-theme-main focus:outline-none mb-4"
+      ></textarea>
+      <div class="flex justify-end gap-2">
+        <button id="cancelImportBtn" class="px-4 py-2 rounded-xl text-xs text-theme-sub hover:text-theme-text cursor-pointer">Cancel</button>
+        <button id="saveImportBtn" class="px-5 py-2 rounded-xl text-xs font-bold bg-theme-main text-theme-bg hover:opacity-90 transition cursor-pointer">Save & Play</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <footer class="w-full max-w-5xl mx-auto flex flex-col sm:flex-row items-center justify-between text-xs text-theme-sub pt-4 gap-2 border-t border-theme-sub/10">
+    <div class="flex items-center space-x-2">
+      <span class="text-theme-main font-bold">LexiSprint</span>
+      <span>•</span>
+      <span>10 Top Languages • Bidirectional • Fuzzy Levenshtein</span>
+    </div>
+    <div class="flex items-center space-x-4">
+      <span><kbd class="text-theme-text bg-theme-card px-1.5 py-0.5 rounded font-mono">Esc</kbd> reset to lobby</span>
+      <span><kbd class="text-theme-text bg-theme-card px-1.5 py-0.5 rounded font-mono">Tab</kbd> skip</span>
+    </div>
+  </footer>
+
+  <!-- Application Logic -->
+  <script>
+    /* -----------------------------------------------------------------
+     * 1. Multi-Language Dictionary Base (10 Most Popular Languages)
+     * Massive High-Frequency Word Bank across all Packs & Levels
+     * ----------------------------------------------------------------- */
+    const LANGUAGES_META = {
+      ru: { name: "Russian", flag: "🇷🇺", voice: "ru-RU" },
+      es: { name: "Spanish", flag: "🇪🇸", voice: "es-ES" },
+      fr: { name: "French", flag: "🇫🇷", voice: "fr-FR" },
+      de: { name: "German", flag: "🇩🇪", voice: "de-DE" },
+      it: { name: "Italian", flag: "🇮🇹", voice: "it-IT" },
+      pt: { name: "Portuguese", flag: "🇵🇹", voice: "pt-PT" },
+      tr: { name: "Turkish", flag: "🇹🇷", voice: "tr-TR" },
+      ja: { name: "Japanese", flag: "🇯🇵", voice: "ja-JP" },
+      zh: { name: "Chinese", flag: "🇨🇳", voice: "zh-CN" },
+      ar: { name: "Arabic", flag: "🇸🇦", voice: "ar-SA" }
+    };
+
+    // Master English Word Repository with Context Examples
+    const MASTER_WORDS = {
+      a2: [
+        { q: "dirty", ex: "His boots were completely dirty after the rain." },
+        { q: "clean", ex: "Keep your workspace clean and organized." },
+        { q: "brave", ex: "The firefighter was exceptionally brave." },
+        { q: "tired", ex: "I felt exhausted and tired after the long journey." },
+        { q: "cheap", ex: "This shirt was quite cheap yet durable." },
+        { q: "simple", ex: "The solution was surprisingly simple." },
+        { q: "safe", ex: "Always wear your seatbelt to stay safe." },
+        { q: "quick", ex: "We grabbed a quick lunch before the class." },
+        { q: "honest", ex: "She gave an honest opinion regarding the proposal." },
+        { q: "heavy", ex: "The parcel is too heavy to carry alone." },
+        { q: "angry", ex: "He grew angry when he realized the deception." },
+        { q: "hungry", ex: "The kids are hungry after soccer training." },
+        { q: "quiet", ex: "The library is quiet in the morning." },
+        { q: "loud", ex: "The music next door was way too loud." },
+        { q: "empty", ex: "The fuel tank is completely empty." },
+        { q: "full", ex: "The lecture hall was completely full today." },
+        { q: "narrow", ex: "We walked down a narrow stone street." },
+        { q: "wide", ex: "The road became wide near the junction." },
+        { q: "early", ex: "He arrived early to secure front seats." },
+        { q: "late", ex: "Never be late for a job interview." },
+        { q: "warm", ex: "A warm cup of coffee refreshed my spirits." },
+        { q: "cold", ex: "Winter mornings can be freezing cold." },
+        { q: "dark", ex: "It was pitch dark outside without street lamps." },
+        { q: "bright", ex: "The morning sunshine was remarkably bright." },
+        { q: "clever", ex: "She devised a clever scheme to solve the puzzle." },
+        { q: "polite", ex: "Always remain polite when speaking to guests." },
+        { q: "lazy", ex: "On rainy Sundays I feel wonderfully lazy." },
+        { q: "careful", ex: "Be careful when crossing the intersection." },
+        { q: "useful", ex: "This dictionary is extremely useful for students." },
+        { q: "useless", ex: "Old batteries are useless for this device." },
+        { q: "danger", ex: "The yellow signs warn hikers of steep danger." },
+        { q: "gentle", ex: "A gentle breeze was blowing through the trees." },
+        { q: "lonely", ex: "The house felt lonely without family and pets." },
+        { q: "proud", ex: "Her parents were proud of her graduation." },
+        { q: "strange", ex: "We heard a strange noise in the attic at night." },
+        { q: "weak", ex: "His muscles felt weak after a week in bed." },
+        { q: "strong", ex: "Regular exercise builds strong physical health." },
+        { q: "young", ex: "The young apprentice learned quickly on the job." },
+        { q: "dry", ex: "Deserts are dry places with minimal rainfall." },
+        { q: "wet", ex: "Wear a waterproof jacket to avoid wet clothes." }
+      ],
+      b2: [
+        { q: "achieve", ex: "Dedication helps you achieve your goals." },
+        { q: "accurate", ex: "Ensure the data you provide is accurate." },
+        { q: "hesitate", ex: "Do not hesitate to ask for clarifications." },
+        { q: "convenient", ex: "Online payment makes shopping convenient." },
+        { q: "improve", ex: "Daily drills improve vocabulary retention." },
+        { q: "persuade", ex: "She persuaded the team to adopt the changes." },
+        { q: "reliable", ex: "We require a reliable partner for logistics." },
+        { q: "distribute", ex: "Volunteers distribute supplies to shelters." },
+        { q: "emphasize", ex: "The teacher emphasized core grammatical points." },
+        { q: "efficient", ex: "This engine is both quiet and fuel efficient." },
+        { q: "appreciate", ex: "I sincerely appreciate your timely assistance." },
+        { q: "consequence", ex: "Every impulsive action carries a consequence." },
+        { q: "convince", ex: "His logical arguments convinced everyone." },
+        { q: "demand", ex: "Market demand for renewable power is rising." },
+        { q: "encourage", ex: "Mentors encourage students to think boldly." },
+        { q: "flexible", ex: "Having a flexible schedule reduces stress." },
+        { q: "frequent", ex: "Heavy traffic causes frequent delays here." },
+        { q: "generate", ex: "Solar panels generate clean electrical energy." },
+        { q: "ignore", ex: "Never ignore warnings when operating machinery." },
+        { q: "influence", ex: "Social circles influence personal habits." },
+        { q: "maintain", ex: "He managed to maintain composure under stress." },
+        { q: "predict", ex: "Scientists predict changes in seasonal weather." },
+        { q: "preserve", ex: "Museums strive to preserve ancient artifacts." },
+        { q: "prevent", ex: "Good hygiene prevents common infections." },
+        { q: "recognize", ex: "I could barely recognize him after ten years." },
+        { q: "significant", ex: "There was a significant leap in productivity." },
+        { q: "sufficient", ex: "Eight hours of rest is usually sufficient." },
+        { q: "threaten", ex: "Heavy storms threaten coastal villages." },
+        { q: "undertake", ex: "The university undertook an extensive survey." },
+        { q: "valuable", ex: "Hands-on experience provides valuable insight." },
+        { q: "abandon", ex: "The crew had to abandon the sinking vessel." },
+        { q: "acquire", ex: "She managed to acquire fluent German skills." },
+        { q: "adapt", ex: "Animals adapt to harsh environments quickly." },
+        { q: "clarify", ex: "Could you clarify the main point of this section?" },
+        { q: "compromise", ex: "Both parties reached a fair and balanced compromise." },
+        { q: "confirm", ex: "Please confirm your email address to register." },
+        { q: "distinguish", ex: "It is hard to distinguish twins from each other." },
+        { q: "estimate", ex: "Engineers estimate the repair will take two days." },
+        { q: "justify", ex: "You must justify the expenses on your expense sheet." },
+        { q: "postpone", ex: "We had to postpone the outdoor sports event." }
+      ],
+      c1: [
+        { q: "ubiquitous", ex: "Smartphones have become ubiquitous in daily life." },
+        { q: "ephemeral", ex: "Fame on social media is often ephemeral." },
+        { q: "resilient", ex: "She showed a resilient spirit amidst hardship." },
+        { q: "scrutiny", ex: "The budget proposal came under severe scrutiny." },
+        { q: "mitigate", ex: "New policies aim to mitigate financial loss." },
+        { q: "candid", ex: "He gave a candid interview about his struggles." },
+        { q: "pragmatic", ex: "We must adopt a pragmatic mindset to move forward." },
+        { q: "advocate", ex: "Activists advocate for clean environmental rules." },
+        { q: "feasible", ex: "The architect presented a highly feasible plan." },
+        { q: "plausible", ex: "His excuse sounded plausible at first glance." },
+        { q: "obsolete", ex: "Floppy disks became completely obsolete decades ago." },
+        { q: "eloquent", ex: "The diplomat delivered an eloquent speech." },
+        { q: "meticulous", ex: "She showed meticulous attention to fine detail." },
+        { q: "ambiguous", ex: "The contract contained ambiguous terminology." },
+        { q: "reluctant", ex: "He was reluctant to commit without reassurance." },
+        { q: "inevitable", ex: "Technological automation is practically inevitable." },
+        { q: "coerce", ex: "No one should coerce a witness to lie in court." },
+        { q: "complacent", ex: "Top companies cannot afford to become complacent." },
+        { q: "disparate", ex: "The committee brought together disparate views." },
+        { q: "exacerbate", ex: "Dry winds exacerbate the raging forest fires." },
+        { q: "fallacy", ex: "Believing luck guarantees success is a fallacy." },
+        { q: "lucid", ex: "The patient gave a lucid account of what happened." },
+        { q: "mundane", ex: "She sought escape from mundane office routines." },
+        { q: "nefarious", ex: "Cybercriminals execute nefarious digital scams." },
+        { q: "paradox", ex: "It is a paradox that the busiest people find time." },
+        { q: "aesthetic", ex: "The gallery is designed with pure aesthetic simplicity." },
+        { q: "benevolent", ex: "A benevolent sponsor paid for the student's tuition." },
+        { q: "clandestine", ex: "Agents held a clandestine meeting after sunset." },
+        { q: "deterrent", ex: "Clear penalties serve as a powerful deterrent." },
+        { q: "enigma", ex: "His mysterious departure remains an unsolved enigma." }
+      ],
+      tech: [
+        { q: "deploy", ex: "We deploy the latest build to cloud servers." },
+        { q: "endpoint", ex: "Requests are handled by the auth endpoint." },
+        { q: "immutable", ex: "Functional programming promotes immutable state." },
+        { q: "compiler", ex: "The compiler optimizes code for low latency." },
+        { q: "database", ex: "Indices make database lookups much faster." },
+        { q: "framework", ex: "Choose a lightweight framework for web apps." },
+        { q: "middleware", ex: "Middleware processes authorization tokens." },
+        { q: "repository", ex: "Clone the code repository from Git." },
+        { q: "refactor", ex: "Developers refactor legacy code to boost speed." },
+        { q: "concurrency", ex: "Go handles high concurrency with goroutines." },
+        { q: "bandwidth", ex: "High video stream quality consumes bandwidth." },
+        { q: "latency", ex: "Edge nodes minimize roundtrip latency for users." },
+        { q: "cache", ex: "Redis is used to cache frequent query records." },
+        { q: "algorithm", ex: "Search engines optimize their sorting algorithm." },
+        { q: "debugging", ex: "Logging makes runtime debugging manageable." },
+        { q: "protocol", ex: "HTTPS is a secure communications protocol." },
+        { q: "encryption", ex: "End-to-end encryption protects sensitive user chat." },
+        { q: "payload", ex: "The JSON payload contains the user's updated settings." },
+        { q: "runtime", ex: "Node.js provides a versatile JavaScript runtime." },
+        { q: "scalable", ex: "Microservices ensure a scalable cloud architecture." }
+      ],
+      travel: [
+        { q: "layover", ex: "We booked a flight with a short layover in Doha." },
+        { q: "customs", ex: "Declare taxable goods at customs checkpoint." },
+        { q: "boarding", ex: "Boarding commences thirty minutes before departure." },
+        { q: "itinerary", ex: "The travel agency prepared our daily itinerary." },
+        { q: "luggage", ex: "Overweight luggage incurs an additional fee." },
+        { q: "departure", ex: "Check departure screens for updated gate numbers." },
+        { q: "arrival", ex: "Taxi services are available outside arrival gates." },
+        { q: "reservation", ex: "We made an advance reservation at the resort." },
+        { q: "terminal", ex: "International departures leave from Terminal 3." },
+        { q: "destination", ex: "Paris remains our primary holiday destination." },
+        { q: "passport", ex: "Ensure your passport is valid for six months." },
+        { q: "transit", ex: "Passengers in transit don't need entry visas." },
+        { q: "shuttle", ex: "Take the hotel shuttle bus from the airport." },
+        { q: "embassy", ex: "Visit the national embassy for visa issues." },
+        { q: "currency", ex: "Exchange local currency before leaving town." },
+        { q: "ticket", ex: "Keep your electronic train ticket accessible." },
+        { q: "souvenir", ex: "I bought a small souvenir from the local market." },
+        { q: "excursion", ex: "The tour guide led an exciting mountain excursion." },
+        { q: "reception", ex: "Hand your room key to reception upon departure." },
+        { q: "journey", ex: "The scenic rail journey lasted four quiet hours." }
+      ],
+      business: [
+        { q: "revenue", ex: "Quarterly revenue increased across all sectors." },
+        { q: "deadline", ex: "The team worked overtime to beat the deadline." },
+        { q: "negotiate", ex: "Both firms met to negotiate contract clauses." },
+        { q: "stakeholder", ex: "Present financial reports to every stakeholder." },
+        { q: "turnover", ex: "High staff turnover disrupts project timelines." },
+        { q: "acquisition", ex: "The tech giant finalized the startup acquisition." },
+        { q: "benchmark", ex: "These KPI metrics set the industry benchmark." },
+        { q: "dividend", ex: "Shareholders received a quarterly dividend payout." },
+        { q: "liability", ex: "Insurance shields the business from product liability." },
+        { q: "leverage", ex: "Smart startups leverage digital marketing channels." },
+        { q: "portfolio", ex: "Investors diversify their portfolio to lower risk." },
+        { q: "synergy", ex: "The joint venture aimed to create market synergy." },
+        { q: "monopoly", ex: "Anti-trust regulations prevent unfair monopoly." },
+        { q: "outsourcing", ex: "Outsourcing customer support lowered costs." },
+        { q: "overhead", ex: "Remote companies save thousands on office overhead." },
+        { q: "audit", ex: "The firm passed its annual financial audit cleanly." },
+        { q: "budget", ex: "Keep project expenses within the approved budget." },
+        { q: "contract", ex: "Both partners signed the multi-year vendor contract." },
+        { q: "merger", ex: "The corporate merger created the largest local provider." },
+        { q: "profit", ex: "Higher operating margin translated into strong net profit." }
+      ]
+    };
+
+    // Complete Translations and Synonyms for All 10 Target Languages
+    const TRANSLATIONS = {
+      ru: {
+        dirty: ["грязный", "грязно", "замаранный", "нечистый"],
+        clean: ["чистый", "чисто", "убирать", "мыть"],
+        brave: ["храбрый", "смелый", "отважный", "мужественный"],
+        tired: ["уставший", "устал", "утомленный"],
+        cheap: ["дешевый", "дешево", "недорогой"],
+        simple: ["простой", "просто", "несложный"],
+        safe: ["безопасный", "безопасно", "в безопасности"],
+        quick: ["быстрый", "быстро", "скорый"],
+        honest: ["честный", "честно", "правдивый"],
+        heavy: ["тяжелый", "тяжело", "массивный"],
+        angry: ["злой", "сердитый", "рассерженный"],
+        hungry: ["голодный", "голодно"],
+        quiet: ["тихий", "тихо", "спокойный"],
+        loud: ["громкий", "громко", "шумный"],
+        empty: ["пустой", "пусто"],
+        full: ["полный", "полно", "заполненный"],
+        narrow: ["узкий", "узко"],
+        wide: ["широкий", "широко"],
+        early: ["ранний", "рано"],
+        late: ["поздний", "поздно"],
+        warm: ["теплый", "тепло"],
+        cold: ["холодный", "холодно"],
+        dark: ["темный", "темно"],
+        bright: ["яркий", "ярко", "светлый"],
+        clever: ["умный", "умно", "сообразительный"],
+        polite: ["вежливый", "вежливо"],
+        lazy: ["ленивый", "лениво"],
+        careful: ["осторожный", "осторожно", "внимательный"],
+        useful: ["полезный", "полезно"],
+        useless: ["бесполезный", "бесполезно"],
+        achieve: ["достигать", "достичь", "добиваться"],
+        accurate: ["точный", "точно", "достоверный"],
+        hesitate: ["колебаться", "сомневаться", "медлить"],
+        convenient: ["удобный", "удобно", "подходящий"],
+        improve: ["улучшать", "улучшить", "совершенствовать"],
+        persuade: ["убеждать", "уговаривать", "убедить"],
+        reliable: ["надежный", "верный"],
+        distribute: ["распространять", "раздавать", "распределять"],
+        emphasize: ["подчеркивать", "акцентировать", "выделять"],
+        efficient: ["эффективный", "продуктивный"],
+        appreciate: ["ценить", "признавать", "быть благодарным"],
+        consequence: ["последствие", "следствие", "результат"],
+        convince: ["убеждать", "убедить"],
+        demand: ["спрос", "требование", "требовать"],
+        encourage: ["поощрять", "вдохновлять", "ободрять"],
+        flexible: ["гибкий", "гибко"],
+        frequent: ["частый", "часто"],
+        generate: ["генерировать", "создавать", "производить"],
+        ignore: ["игнорировать", "пропускать"],
+        influence: ["влиять", "влияние", "воздействовать"],
+        maintain: ["поддерживать", "сохранять"],
+        predict: ["предсказывать", "прогнозировать"],
+        preserve: ["сохранять", "оберегать"],
+        prevent: ["предотвращать", "мешать"],
+        recognize: ["узнавать", "признавать"],
+        significant: ["значительный", "существенный"],
+        sufficient: ["достаточный", "достаточно"],
+        threaten: ["угрожать"],
+        undertake: ["предпринимать", "браться"],
+        valuable: ["ценный", "полезный"],
+        ubiquitous: ["вездесущий", "повсеместный"],
+        ephemeral: ["эфемерный", "мимолетный", "кратковечный"],
+        resilient: ["стойкий", "устойчивый", "живучий"],
+        scrutiny: ["проверка", "исследование", "надзор"],
+        mitigate: ["смягчать", "уменьшать", "облегчать"],
+        candid: ["откровенный", "искренний", "прямой"],
+        pragmatic: ["прагматичный", "практичный"],
+        advocate: ["защищать", "отстаивать", "сторонник"],
+        feasible: ["осуществимый", "реализуемый", "выполнимый"],
+        plausible: ["правдоподобный", "вероятный"],
+        obsolete: ["устаревший", "вышедший из употребления"],
+        eloquent: ["красноречивый", "убедительный"],
+        meticulous: ["дотошный", "скрупулезный", "тщательный"],
+        ambiguous: ["двусмысленный", "неоднозначный"],
+        reluctant: ["неохотный", "сопротивляющийся"],
+        inevitable: ["неизбежный", "неотвратимый"],
+        coerce: ["принуждать", "заставлять"],
+        complacent: ["самодовольный", "беспечный"],
+        disparate: ["несопоставимый", "разнородный"],
+        exacerbate: ["обострять", "усугублять"],
+        fallacy: ["заблуждение", "ошибка"],
+        lucid: ["ясный", "вразумительный", "понятный"],
+        mundane: ["обыденный", "рутинный", "приземленный"],
+        nefarious: ["гнусный", "злодейский", "подлый"],
+        paradox: ["парадокс"],
+        deploy: ["развернуть", "деплоить", "внедрять"],
+        endpoint: ["эндпоинт", "конечная точка"],
+        immutable: ["неизменяемый", "константный"],
+        compiler: ["компилятор"],
+        database: ["база данных", "бд"],
+        danger: ["опасность", "риск", "угроза"],
+        gentle: ["нежный", "мягкий", "кроткий"],
+        lonely: ["одинокий", "одиноко"],
+        proud: ["гордый", "гордо"],
+        strange: ["странный", "странно", "необычный"],
+        weak: ["слабый", "слабо", "немощный"],
+        strong: ["сильный", "крепкий", "прочный"],
+        young: ["молодой", "юный"],
+        dry: ["сухой", "сухо", "сушить"],
+        wet: ["мокрый", "сырой", "влажный"],
+        abandon: ["покидать", "бросать", "оставлять"],
+        acquire: ["приобретать", "получать", "усваивать"],
+        adapt: ["адаптироваться", "приспосабливаться"],
+        clarify: ["прояснять", "уточнять", "разъяснять"],
+        compromise: ["компромисс", "идти на компромисс"],
+        confirm: ["подтверждать", "подтвердить"],
+        distinguish: ["различать", "отличать", "выделять"],
+        estimate: ["оценивать", "прикидывать", "расчет"],
+        justify: ["оправдывать", "обосновывать"],
+        postpone: ["откладывать", "переносить"],
+        aesthetic: ["эстетичный", "эстетический", "эстетика"],
+        benevolent: ["доброжелательный", "великодушный"],
+        clandestine: ["тайный", "подпольный", "секретный"],
+        deterrent: ["сдерживающий фактор", "сдерживание"],
+        enigma: ["загадка", "тайна"],
+        protocol: ["протокол"],
+        encryption: ["шифрование"],
+        payload: ["полезная нагрузка", "пейлоад"],
+        runtime: ["среда выполнения", "рантайм"],
+        scalable: ["масштабируемый"],
+        ticket: ["билет"],
+        souvenir: ["сувенир"],
+        excursion: ["экскурсия"],
+        reception: ["стойка регистрации", "ресепшн", "прием"],
+        journey: ["путешествие", "поездка"],
+        audit: ["аудит", "проверка"],
+        budget: ["бюджет"],
+        contract: ["контракт", "договор"],
+        merger: ["слияние"],
+        profit: ["прибыль", "доход"]
+      },
+      es: {
+        dirty: ["sucio", "sucia"],
+        clean: ["limpio", "limpia", "limpiar"],
+        brave: ["valiente", "bravo"],
+        tired: ["cansado", "cansada", "fatigado"],
+        cheap: ["barato", "economico"],
+        simple: ["simple", "sencillo", "facil"],
+        safe: ["seguro", "a salvo"],
+        quick: ["rapido", "veloz"],
+        honest: ["honesto", "sincero"],
+        heavy: ["pesado", "fuerte"],
+        angry: ["enojado", "furioso", "enfadado"],
+        hungry: ["hambriento"],
+        quiet: ["tranquilo", "silencioso"],
+        loud: ["ruidoso", "fuerte"],
+        empty: ["vacio"],
+        full: ["lleno", "completo"],
+        narrow: ["estrecho"],
+        wide: ["ancho", "amplio"],
+        early: ["temprano"],
+        late: ["tarde"],
+        warm: ["calido", "templado"],
+        cold: ["frio"],
+        dark: ["oscuro"],
+        bright: ["brillante", "luminoso"],
+        clever: ["inteligente", "listo"],
+        polite: ["educado", "cortes"],
+        lazy: ["perezoso", "vago"],
+        careful: ["cuidadoso", "atento"],
+        useful: ["util"],
+        useless: ["inutil"],
+        achieve: ["lograr", "alcanzar", "conseguir"],
+        accurate: ["exacto", "preciso"],
+        hesitate: ["dudar", "vacilar"],
+        convenient: ["conveniente", "comodo"],
+        improve: ["mejorar", "perfeccionar"],
+        persuade: ["persuadir", "convencer"],
+        reliable: ["confiable", "fiable"],
+        distribute: ["distribuir", "repartir"],
+        emphasize: ["enfatizar", "destacar"],
+        efficient: ["eficiente", "eficaz"],
+        appreciate: ["apreciar", "agradecer"],
+        consequence: ["consecuencia", "resultado"],
+        convince: ["convencer"],
+        demand: ["demanda", "exigir"],
+        encourage: ["animar", "fomentar"],
+        flexible: ["flexible"],
+        frequent: ["frecuente"],
+        generate: ["generar", "crear"],
+        ignore: ["ignorar", "descartar"],
+        influence: ["influir", "influencia"],
+        maintain: ["mantener", "sostener"],
+        predict: ["predecir", "pronosticar"],
+        preserve: ["preservar", "conservar"],
+        prevent: ["prevenir", "impedir"],
+        recognize: ["reconocer"],
+        significant: ["significativo", "importante"],
+        sufficient: ["suficiente", "bastante"],
+        threaten: ["amenazar"],
+        undertake: ["emprender", "asumir"],
+        valuable: ["valioso"],
+        ubiquitous: ["ubicuo", "omnipresente"],
+        ephemeral: ["efimero"],
+        resilient: ["resiliente", "resistente"],
+        scrutiny: ["escrutinio", "inspeccion"],
+        mitigate: ["mitigar", "atenuar"],
+        candid: ["franco", "sincero"],
+        pragmatic: ["pragmatico", "practico"],
+        advocate: ["defender", "abogar"],
+        feasible: ["factible", "viable"],
+        plausible: ["plausible", "creible"],
+        obsolete: ["obsoleto", "anticuado"],
+        eloquent: ["elocuente"],
+        meticulous: ["meticuloso", "minucioso"],
+        ambiguous: ["ambiguo"],
+        reluctant: ["renuente", "reacio"],
+        inevitable: ["inevitable"],
+        coerce: ["coaccionar", "obligar"],
+        complacent: ["complaciente", "satisfecho"],
+        disparate: ["dispar", "heterogeneo"],
+        exacerbate: ["exacerbar", "empeorar"],
+        fallacy: ["falacia", "engano"],
+        lucid: ["lucido", "claro"],
+        mundane: ["mundano", "ordinario"],
+        nefarious: ["nefario", "malvado"],
+        paradox: ["paradoja"],
+        deploy: ["desplegar", "implementar"],
+        endpoint: ["punto final", "endpoint"],
+        immutable: ["inmutable"],
+        compiler: ["compilador"],
+        database: ["base de datos"],
+        danger: ["peligro", "riesgo"],
+        gentle: ["suave", "amable", "gentil"],
+        lonely: ["solitario", "solo"],
+        proud: ["orgulloso"],
+        strange: ["extrano", "raro"],
+        weak: ["debil"],
+        strong: ["fuerte", "solido"],
+        young: ["joven"],
+        dry: ["seco"],
+        wet: ["mojado", "humedo"],
+        abandon: ["abandonar"],
+        acquire: ["adquirir", "obtener"],
+        adapt: ["adaptar", "adaptarse"],
+        clarify: ["aclarar", "clarificar"],
+        compromise: ["compromiso", "acuerdo"],
+        confirm: ["confirmar"],
+        distinguish: ["distinguir", "diferenciar"],
+        estimate: ["estimar", "calcular"],
+        justify: ["justificar"],
+        postpone: ["posponer", "aplazar"],
+        aesthetic: ["estetico", "estetica"],
+        benevolent: ["benevolente", "caritativo"],
+        clandestine: ["clandestino", "secreto"],
+        deterrent: ["disuasorio", "disuasion"],
+        enigma: ["enigma", "misterio"],
+        protocol: ["protocolo"],
+        encryption: ["encriptacion", "cifrado"],
+        payload: ["carga util", "payload"],
+        runtime: ["tiempo de ejecucion", "runtime"],
+        scalable: ["escalable"],
+        ticket: ["billete", "boleto", "ticket"],
+        souvenir: ["recuerdo", "souvenir"],
+        excursion: ["excursion"],
+        reception: ["recepcion"],
+        journey: ["viaje", "trayecto"],
+        audit: ["auditoria"],
+        budget: ["presupuesto"],
+        contract: ["contrato"],
+        merger: ["fusion"],
+        profit: ["beneficio", "ganancia"]
+      },
+      fr: {
+        dirty: ["sale"],
+        clean: ["propre", "nettoyer"],
+        brave: ["courageux", "brave"],
+        tired: ["fatigue", "epuise"],
+        cheap: ["bon marche", "pas cher"],
+        simple: ["simple", "facile"],
+        safe: ["sur", "en securite"],
+        quick: ["rapide", "vite"],
+        honest: ["honnete", "sincere"],
+        heavy: ["lourd"],
+        angry: ["en colere", "fache"],
+        hungry: ["affame"],
+        quiet: ["calme", "silencieux"],
+        loud: ["bruyant", "fort"],
+        empty: ["vide"],
+        full: ["plein", "rempli"],
+        narrow: ["etroit"],
+        wide: ["large"],
+        early: ["tot"],
+        late: ["tard", "en retard"],
+        warm: ["chaud", "tiede"],
+        cold: ["froid"],
+        dark: ["sombre", "obscur"],
+        bright: ["brillant", "lumineux"],
+        clever: ["intelligent", "malin"],
+        polite: ["poli"],
+        lazy: ["paresseux"],
+        careful: ["prudent", "attentif"],
+        useful: ["utile"],
+        useless: ["inutile"],
+        achieve: ["atteindre", "accomplir", "reussir"],
+        accurate: ["precis", "exact"],
+        hesitate: ["hesiter"],
+        convenient: ["pratique", "commode"],
+        improve: ["ameliorer"],
+        persuade: ["persuader", "convaincre"],
+        reliable: ["fiable"],
+        distribute: ["distribuer", "repartir"],
+        emphasize: ["souligner", "accentuer"],
+        efficient: ["efficace", "performant"],
+        appreciate: ["apprecier"],
+        consequence: ["consequence"],
+        convince: ["convaincre"],
+        demand: ["demande", "exiger"],
+        encourage: ["encourager"],
+        flexible: ["flexible", "souple"],
+        frequent: ["frequent"],
+        generate: ["generer", "produire"],
+        ignore: ["ignorer"],
+        influence: ["influencer", "influence"],
+        maintain: ["maintenir", "entretenir"],
+        predict: ["predire", "prevoir"],
+        preserve: ["preserver", "conserver"],
+        prevent: ["prevenir", "empecher"],
+        recognize: ["reconnaitre"],
+        significant: ["significatif", "important"],
+        sufficient: ["suffisant"],
+        threaten: ["menacer"],
+        undertake: ["entreprendre"],
+        valuable: ["precieux"],
+        ubiquitous: ["omnipresent", "ubiquitaire"],
+        ephemeral: ["ephemere"],
+        resilient: ["resilient"],
+        scrutiny: ["examen", "surveillance"],
+        mitigate: ["attenuer", "mitiger"],
+        candid: ["franc", "sincere"],
+        pragmatic: ["pragmatique"],
+        advocate: ["preconiser", "defendre"],
+        feasible: ["faisable", "realisable"],
+        plausible: ["plausible", "credible"],
+        obsolete: ["obsolete", "perime"],
+        eloquent: ["eloquent"],
+        meticulous: ["meticuleux"],
+        ambiguous: ["ambigu"],
+        reluctant: ["reticent", "hesitant"],
+        inevitable: ["inevitable"],
+        coerce: ["contraindre", "forcer"],
+        complacent: ["autosatisfait", "complaisant"],
+        disparate: ["disparate"],
+        exacerbate: ["exacerber", "aggraver"],
+        fallacy: ["erreur", "sophisme"],
+        lucid: ["lucide", "clair"],
+        mundane: ["banal", "mondain"],
+        nefarious: ["nefaste", "malveillant"],
+        paradox: ["paradoxe"],
+        deploy: ["deployer"],
+        endpoint: ["point de terminaison", "endpoint"],
+        immutable: ["immuable"],
+        compiler: ["compilateur"],
+        database: ["base de donnees"],
+        danger: ["danger", "risque"],
+        gentle: ["doux", "gentil"],
+        lonely: ["solitaire", "seul"],
+        proud: ["fier"],
+        strange: ["etrange", "bizarre"],
+        weak: ["faible"],
+        strong: ["fort", "puissant"],
+        young: ["jeune"],
+        dry: ["sec"],
+        wet: ["mouille", "humide"],
+        abandon: ["abandonner"],
+        acquire: ["acquerir", "obtenir"],
+        adapt: ["adapter", "s adapter"],
+        clarify: ["clarifier", "preciser"],
+        compromise: ["compromis"],
+        confirm: ["confirmer"],
+        distinguish: ["distinguer"],
+        estimate: ["estimer", "evaluer"],
+        justify: ["justifier"],
+        postpone: ["reporter", "ajourner"],
+        aesthetic: ["esthetique"],
+        benevolent: ["bienveillant"],
+        clandestine: ["clandestin", "secret"],
+        deterrent: ["dissuasion", "dissuasif"],
+        enigma: ["enigme", "mystere"],
+        protocol: ["protocole"],
+        encryption: ["chiffrement", "cryptage"],
+        payload: ["charge utile", "payload"],
+        runtime: ["environnement d execution", "runtime"],
+        scalable: ["evolutif", "scalable"],
+        ticket: ["billet", "ticket"],
+        souvenir: ["souvenir"],
+        excursion: ["excursion"],
+        reception: ["reception", "accueil"],
+        journey: ["voyage", "trajet"],
+        audit: ["audit"],
+        budget: ["budget"],
+        contract: ["contrat"],
+        merger: ["fusion"],
+        profit: ["profit", "benefice"]
+      },
+      de: {
+        dirty: ["schmutzig", "dreckig"],
+        clean: ["sauber", "rein", "putzen"],
+        brave: ["mutig", "tapfer"],
+        tired: ["mude", "erschopft"],
+        cheap: ["billig", "gunstig"],
+        simple: ["einfach", "simpel"],
+        safe: ["sicher"],
+        quick: ["schnell", "rasch"],
+        honest: ["ehrlich", "aufrichtig"],
+        heavy: ["schwer"],
+        angry: ["wutend", "zornig"],
+        hungry: ["hungrig"],
+        quiet: ["leise", "ruhig"],
+        loud: ["laut"],
+        empty: ["leer"],
+        full: ["voll"],
+        narrow: ["eng", "schmal"],
+        wide: ["breit", "weit"],
+        early: ["fruh"],
+        late: ["spat"],
+        warm: ["warm"],
+        cold: ["kalt"],
+        dark: ["dunkel"],
+        bright: ["hell", "strahlend"],
+        clever: ["klug", "schlau"],
+        polite: ["hoflich"],
+        lazy: ["faul"],
+        careful: ["vorsichtig", "achtsam"],
+        useful: ["nutzlich"],
+        useless: ["nutzlos"],
+        achieve: ["erreichen", "schaffen"],
+        accurate: ["genau", "prazise"],
+        hesitate: ["zogern"],
+        convenient: ["praktisch", "bequem"],
+        improve: ["verbessern"],
+        persuade: ["uberzeugen", "uberreden"],
+        reliable: ["zuverlassig"],
+        distribute: ["verteilen"],
+        emphasize: ["betonen", "hervorheben"],
+        efficient: ["effizient", "wirksam"],
+        appreciate: ["schatzen", "wurden"],
+        consequence: ["konsequenz", "folge"],
+        convince: ["uberzeugen"],
+        demand: ["nachfrage", "fordern"],
+        encourage: ["ermutigen", "fordern"],
+        flexible: ["flexibel"],
+        frequent: ["haufig"],
+        generate: ["erzeugen", "generieren"],
+        ignore: ["ignorieren"],
+        influence: ["beeinflussen", "einfluss"],
+        maintain: ["erhalten", "pflegen"],
+        predict: ["vorhersagen"],
+        preserve: ["bewahren", "erhalten"],
+        prevent: ["verhindern", "vorbeugen"],
+        recognize: ["erkennen", "anerkennen"],
+        significant: ["bedeutend", "wesentlich"],
+        sufficient: ["ausreichend", "genug"],
+        threaten: ["drohen", "bedrohen"],
+        undertake: ["unternehmen"],
+        valuable: ["wertvoll"],
+        ubiquitous: ["allgegenwartig"],
+        ephemeral: ["fluchtig", "verganglich"],
+        resilient: ["widerstandsfahig"],
+        scrutiny: ["uberprufung", "untersuchung"],
+        mitigate: ["mindern", "mildern"],
+        candid: ["aufrichtig", "offen"],
+        pragmatic: ["pragmatisch"],
+        advocate: ["befurworten", "verteidigen"],
+        feasible: ["machbar", "durchfuhrbar"],
+        plausible: ["plausibel", "glaubhaft"],
+        obsolete: ["veraltet", "obsolet"],
+        eloquent: ["beredt", "wortgewandt"],
+        meticulous: ["akribisch", "sorgfaltig"],
+        ambiguous: ["zweideutig", "mehrdeutig"],
+        reluctant: ["zogerlich", "widerwillig"],
+        inevitable: ["unvermeidlich"],
+        coerce: ["zwingen", "notigen"],
+        complacent: ["selbstzufrieden"],
+        disparate: ["ungleich", "verschieden"],
+        exacerbate: ["verschlimmern"],
+        fallacy: ["trugschluss", "irrtum"],
+        lucid: ["klar", "verständlich"],
+        mundane: ["alltaglich", "banal"],
+        nefarious: ["boshaft", "ruchlos"],
+        paradox: ["paradoxon"],
+        deploy: ["bereitstellen", "deployen"],
+        endpoint: ["endpunkt"],
+        immutable: ["unveranderlich"],
+        compiler: ["compiler"],
+        database: ["datenbank"],
+        danger: ["gefahr", "risiko"],
+        gentle: ["sanft", "zart"],
+        lonely: ["einsam"],
+        proud: ["stolz"],
+        strange: ["seltsam", "fremd"],
+        weak: ["schwach"],
+        strong: ["stark", "kraftvoll"],
+        young: ["jung"],
+        dry: ["trocken"],
+        wet: ["nass", "feucht"],
+        abandon: ["aufgeben", "verlassen"],
+        acquire: ["erwerben", "aneignen"],
+        adapt: ["anpassen"],
+        clarify: ["klarstellen", "verdeutlichen"],
+        compromise: ["kompromiss"],
+        confirm: ["bestatigen"],
+        distinguish: ["unterscheiden"],
+        estimate: ["schatzen"],
+        justify: ["rechtfertigen", "begrunden"],
+        postpone: ["verschieben"],
+        aesthetic: ["asthetisch"],
+        benevolent: ["wohlwollend", "gutig"],
+        clandestine: ["heimlich", "illegal"],
+        deterrent: ["abschreckung"],
+        enigma: ["ratsel", "enigma"],
+        protocol: ["protokoll"],
+        encryption: ["verschlusselung"],
+        payload: ["nutzlast", "payload"],
+        runtime: ["laufzeit", "laufzeitumgebung"],
+        scalable: ["skalierbar"],
+        ticket: ["fahrkarte", "ticket"],
+        souvenir: ["andenken", "souvenir"],
+        excursion: ["ausflug", "exkursion"],
+        reception: ["empfang", "rezeption"],
+        journey: ["reise", "fahrt"],
+        audit: ["prufung", "audit"],
+        budget: ["budget", "etat"],
+        contract: ["vertrag"],
+        merger: ["fusion", "zusammenschluss"],
+        profit: ["gewinn", "profit"]
+      },
+      it: {
+        dirty: ["sporco", "sporca"],
+        clean: ["pulito", "pulita", "pulire"],
+        brave: ["coraggioso", "bravo"],
+        tired: ["stanco", "stanca"],
+        cheap: ["economico", "a buon mercato"],
+        simple: ["semplice", "facile"],
+        safe: ["sicuro", "al sicuro"],
+        quick: ["veloce", "rapido"],
+        honest: ["onesto", "sincero"],
+        heavy: ["pesante"],
+        angry: ["arrabbiato"],
+        hungry: ["affamato"],
+        quiet: ["calmo", "silenzioso"],
+        loud: ["rumoroso", "forte"],
+        empty: ["vuoto"],
+        full: ["pieno"],
+        narrow: ["stretto"],
+        wide: ["largo", "ampio"],
+        early: ["presto"],
+        late: ["tardi"],
+        warm: ["caldo"],
+        cold: ["freddo"],
+        dark: ["scuro", "buio"],
+        bright: ["luminoso", "brillante"],
+        clever: ["intelligente", "furbo"],
+        polite: ["educato", "cortese"],
+        lazy: ["pigro"],
+        careful: ["attento", "prudente"],
+        useful: ["utile"],
+        useless: ["inutile"],
+        achieve: ["raggiungere", "ottenere"],
+        accurate: ["accurato", "preciso"],
+        hesitate: ["esitare"],
+        convenient: ["conveniente", "comodo"],
+        improve: ["migliorare"],
+        persuade: ["persuadere", "convincere"],
+        reliable: ["affidabile"],
+        distribute: ["distribuire"],
+        emphasize: ["enfatizzare", "sottolineare"],
+        efficient: ["efficiente"],
+        appreciate: ["apprezzare"],
+        consequence: ["conseguenza"],
+        convince: ["convincere"],
+        demand: ["richiesta", "domanda"],
+        encourage: ["incoraggiare"],
+        flexible: ["flessibile"],
+        frequent: ["frequente"],
+        generate: ["generare", "produrre"],
+        ignore: ["ignorare"],
+        influence: ["influenzare", "influenza"],
+        maintain: ["mantenere"],
+        predict: ["prevedere"],
+        preserve: ["preservare", "conservare"],
+        prevent: ["prevenire", "impedire"],
+        recognize: ["riconoscere"],
+        significant: ["significativo", "importante"],
+        sufficient: ["sufficiente", "abbastanza"],
+        threaten: ["minacciare"],
+        undertake: ["intraprendere"],
+        valuable: ["prezioso"],
+        ubiquitous: ["onnipresente"],
+        ephemeral: ["effimero"],
+        resilient: ["resiliente"],
+        scrutiny: ["esame", "controllo"],
+        mitigate: ["mitigare", "attenuare"],
+        candid: ["franco", "sincero"],
+        pragmatic: ["pragmatico"],
+        advocate: ["difendere", "promuovere"],
+        feasible: ["fattibile"],
+        plausible: ["plausibile"],
+        obsolete: ["obsoleto"],
+        eloquent: ["eloquente"],
+        meticulous: ["meticoloso"],
+        ambiguous: ["ambiguo"],
+        reluctant: ["riluttante"],
+        inevitable: ["inevitabile"],
+        coerce: ["costringere"],
+        complacent: ["autocompiaciuto"],
+        disparate: ["disparato"],
+        exacerbate: ["esacerbare"],
+        fallacy: ["fallacia", "errore"],
+        lucid: ["lucido", "chiaro"],
+        mundane: ["mondano", "banale"],
+        nefarious: ["nefando", "scellerato"],
+        paradox: ["paradosso"],
+        deploy: ["distribuire", "implementare"],
+        endpoint: ["endpoint"],
+        immutable: ["immutabile"],
+        compiler: ["compilatore"],
+        database: ["database", "base di dati"],
+        danger: ["pericolo", "rischio"],
+        gentle: ["gentile", "delicato"],
+        lonely: ["solitario", "solo"],
+        proud: ["orgoglioso", "fiero"],
+        strange: ["strano"],
+        weak: ["debole"],
+        strong: ["forte", "robusto"],
+        young: ["giovane"],
+        dry: ["asciutto", "secco"],
+        wet: ["bagnato", "umido"],
+        abandon: ["abbandonare"],
+        acquire: ["acquisire", "ottenere"],
+        adapt: ["adattare", "adattarsi"],
+        clarify: ["chiarire", "precisare"],
+        compromise: ["compromesso"],
+        confirm: ["confermare"],
+        distinguish: ["distinguere"],
+        estimate: ["stimare", "valutare"],
+        justify: ["giustificare"],
+        postpone: ["rimandare", "posporre"],
+        aesthetic: ["estetico", "estetica"],
+        benevolent: ["benevolo"],
+        clandestine: ["clandestino", "segreto"],
+        deterrent: ["deterrente"],
+        enigma: ["enigma", "mistero"],
+        protocol: ["protocollo"],
+        encryption: ["crittografia", "cifratura"],
+        payload: ["carico utile", "payload"],
+        runtime: ["runtime", "tempo di esecuzione"],
+        scalable: ["scalabile"],
+        ticket: ["biglietto"],
+        souvenir: ["ricordo", "souvenir"],
+        excursion: ["escursione"],
+        reception: ["ricezione", "reception"],
+        journey: ["viaggio"],
+        audit: ["audit", "revisione"],
+        budget: ["bilancio", "budget"],
+        contract: ["contratto"],
+        merger: ["fusione"],
+        profit: ["profitto", "guadagno"]
+      },
+      pt: {
+        dirty: ["sujo", "suja"],
+        clean: ["limpo", "limpa", "limpar"],
+        brave: ["corajoso", "valente"],
+        tired: ["cansado", "cansada"],
+        cheap: ["barato"],
+        simple: ["simples", "facil"],
+        safe: ["seguro"],
+        quick: ["rapido"],
+        honest: ["honesto", "sincero"],
+        heavy: ["pesado"],
+        angry: ["bravo", "irritado"],
+        hungry: ["com fome"],
+        quiet: ["calmo", "silencioso"],
+        loud: ["barulhento", "alto"],
+        empty: ["vazio"],
+        full: ["cheio"],
+        narrow: ["estreito"],
+        wide: ["largo", "amplo"],
+        early: ["cedo"],
+        late: ["tarde"],
+        warm: ["quente", "morno"],
+        cold: ["frio"],
+        dark: ["escuro"],
+        bright: ["brilhante", "claro"],
+        clever: ["esperto", "inteligente"],
+        polite: ["educado"],
+        lazy: ["preguicoso"],
+        careful: ["cuidadoso"],
+        useful: ["util"],
+        useless: ["inutil"],
+        achieve: ["alcancar", "conquistar", "atingir"],
+        accurate: ["preciso", "exato"],
+        hesitate: ["hesitar"],
+        convenient: ["conveniente", "pratico"],
+        improve: ["melhorar"],
+        persuade: ["persuadir", "convencer"],
+        reliable: ["confiavel"],
+        distribute: ["distribuir"],
+        emphasize: ["enfatizar", "destacar"],
+        efficient: ["eficiente"],
+        appreciate: ["apreciar", "agradecer"],
+        consequence: ["consequencia"],
+        convince: ["convencer"],
+        demand: ["demanda", "exigir"],
+        encourage: ["encorajar", "incentivar"],
+        flexible: ["flexivel"],
+        frequent: ["frequente"],
+        generate: ["gerar"],
+        ignore: ["ignorar"],
+        influence: ["influenciar", "influencia"],
+        maintain: ["manter"],
+        predict: ["prever"],
+        preserve: ["preservar"],
+        prevent: ["prevenir", "evitar"],
+        recognize: ["reconhecer"],
+        significant: ["significativo", "importante"],
+        sufficient: ["suficiente"],
+        threaten: ["ameacar"],
+        undertake: ["empreender"],
+        valuable: ["valioso"],
+        ubiquitous: ["onipresente"],
+        ephemeral: ["efemero"],
+        resilient: ["resiliente"],
+        scrutiny: ["escrutinio", "exame"],
+        mitigate: ["mitigar", "atenuar"],
+        candid: ["franco", "sincero"],
+        pragmatic: ["pragmatico"],
+        advocate: ["defender", "apoiar"],
+        feasible: ["viavel", "factivel"],
+        plausible: ["plausivel"],
+        obsolete: ["obsoleto"],
+        eloquent: ["eloquente"],
+        meticulous: ["meticuloso"],
+        ambiguous: ["ambiguo"],
+        reluctant: ["relutante"],
+        inevitable: ["inevitavel"],
+        coerce: ["coagir", "forcar"],
+        complacent: ["complacente"],
+        disparate: ["dispar"],
+        exacerbate: ["exacerbar"],
+        fallacy: ["falacia"],
+        lucid: ["lucido"],
+        mundane: ["mundano"],
+        nefarious: ["nefario", "vil"],
+        paradox: ["paradoxo"],
+        deploy: ["implantar", "deploy"],
+        endpoint: ["endpoint"],
+        immutable: ["imutavel"],
+        compiler: ["compilador"],
+        database: ["banco de dados"],
+        danger: ["perigo", "risco"],
+        gentle: ["gentil", "suave"],
+        lonely: ["solitario", "sozinho"],
+        proud: ["orgulhoso"],
+        strange: ["estranho", "esquisito"],
+        weak: ["fraco"],
+        strong: ["forte"],
+        young: ["jovem"],
+        dry: ["seco"],
+        wet: ["molhado", "umido"],
+        abandon: ["abandonar"],
+        acquire: ["adquirir", "obter"],
+        adapt: ["adaptar", "adaptar-se"],
+        clarify: ["esclarecer", "clarificar"],
+        compromise: ["compromisso", "acordo"],
+        confirm: ["confirmar"],
+        distinguish: ["distinguir"],
+        estimate: ["estimar", "calcular"],
+        justify: ["justificar"],
+        postpone: ["adiar"],
+        aesthetic: ["estetico", "estetica"],
+        benevolent: ["benevolente", "bondoso"],
+        clandestine: ["clandestino", "secreto"],
+        deterrent: ["dissuasao", "dissuasivo"],
+        enigma: ["enigma", "misterio"],
+        protocol: ["protocolo"],
+        encryption: ["criptografia"],
+        payload: ["carga util", "payload"],
+        runtime: ["tempo de execucao", "runtime"],
+        scalable: ["escalavel"],
+        ticket: ["bilhete", "passagem"],
+        souvenir: ["lembranca", "souvenir"],
+        excursion: ["excursao"],
+        reception: ["recepcao"],
+        journey: ["viagem", "jornada"],
+        audit: ["auditoria"],
+        budget: ["orcamento"],
+        contract: ["contrato"],
+        merger: ["fusao"],
+        profit: ["lucro"]
+      },
+      tr: {
+        dirty: ["kirli", "pis"],
+        clean: ["temiz", "temizlemek"],
+        brave: ["cesur", "yigit"],
+        tired: ["yorgun"],
+        cheap: ["ucuz"],
+        simple: ["basit", "kolay"],
+        safe: ["guvenli"],
+        quick: ["hizli", "cabuk"],
+        honest: ["durust"],
+        heavy: ["agir"],
+        angry: ["kizgin", "ofkeli"],
+        hungry: ["ac"],
+        quiet: ["sessiz", "sakin"],
+        loud: ["gurultulu", "yuksek"],
+        empty: ["bos"],
+        full: ["dolu"],
+        narrow: ["dar"],
+        wide: ["genis"],
+        early: ["erken"],
+        late: ["gec"],
+        warm: ["ilik", "sicak"],
+        cold: ["soguk"],
+        dark: ["karanlik"],
+        bright: ["parlak", "aydinlik"],
+        clever: ["zeki", "akilli"],
+        polite: ["kibar", "nazik"],
+        lazy: ["tembel"],
+        careful: ["dikkatli"],
+        useful: ["yararli", "faydali"],
+        useless: ["yararsiz", "faydasiz"],
+        achieve: ["basarmak", "ulasmak"],
+        accurate: ["dogru", "kesin"],
+        hesitate: ["tereddut etmek"],
+        convenient: ["uygun", "elverisli"],
+        improve: ["gelistirmek"],
+        persuade: ["ikna etmek"],
+        reliable: ["guvenilir"],
+        distribute: ["dagitmak"],
+        emphasize: ["vurgulamak"],
+        efficient: ["verimli", "etkili"],
+        appreciate: ["takdir etmek"],
+        consequence: ["sonuc"],
+        convince: ["ikna etmek"],
+        demand: ["talep", "istemek"],
+        encourage: ["tesvik etmek"],
+        flexible: ["esnek"],
+        frequent: ["sik"],
+        generate: ["uretmek", "olusturmak"],
+        ignore: ["gormezden gelmek"],
+        influence: ["etkilemek", "etki"],
+        maintain: ["surdurmek", "korumak"],
+        predict: ["tahmin etmek"],
+        preserve: ["korumak", "muhafaza etmek"],
+        prevent: ["onlemek", "engellemek"],
+        recognize: ["tanimak"],
+        significant: ["onemli", "anlamli"],
+        sufficient: ["yeterli"],
+        threaten: ["tehdit etmek"],
+        undertake: ["ustlenmek"],
+        valuable: ["degerli"],
+        ubiquitous: ["her yerde bulunan"],
+        ephemeral: ["gecici"],
+        resilient: ["dayanikli", "direncli"],
+        scrutiny: ["inceleme"],
+        mitigate: ["hafifletmek", "azaltmak"],
+        candid: ["icten", "samimi"],
+        pragmatic: ["pragmatik", "pratik"],
+        advocate: ["savunmak"],
+        feasible: ["mumkun", "uygulanabilir"],
+        plausible: ["makul", "akla yatkin"],
+        obsolete: ["modasi gecmis"],
+        eloquent: ["guzel konusan"],
+        meticulous: ["titiz", "ozenli"],
+        ambiguous: ["belirsiz"],
+        reluctant: ["isteksiz"],
+        inevitable: ["kacinilmaz"],
+        coerce: ["zorlamak"],
+        complacent: ["rehavete kapilmis"],
+        disparate: ["farkli"],
+        exacerbate: ["kotulestirmek"],
+        fallacy: ["yanilgi"],
+        lucid: ["berrak", "acik"],
+        mundane: ["siradan"],
+        nefarious: ["kotu niyetli"],
+        paradox: ["celiski", "paradoks"],
+        deploy: ["dagitmak", "konuslandirmak"],
+        endpoint: ["uc nokta"],
+        immutable: ["degismez"],
+        compiler: ["derleyici"],
+        database: ["veritabani"],
+        danger: ["tehlike"],
+        gentle: ["nazik", "yumusak"],
+        lonely: ["yalniz"],
+        proud: ["gururlu"],
+        strange: ["garip", "tuhaf"],
+        weak: ["zayif", "gucsuz"],
+        strong: ["guclu", "kuvvetli"],
+        young: ["genc"],
+        dry: ["kuru"],
+        wet: ["islak"],
+        abandon: ["terk etmek", "birakmak"],
+        acquire: ["edinmek", "kazanmak"],
+        adapt: ["uyum saglamak", "adapte olmak"],
+        clarify: ["acikliga kavusturmak", "netlestirmek"],
+        compromise: ["uzlasma", "taviz"],
+        confirm: ["onaylamak", "dogrulamak"],
+        distinguish: ["ayirt etmek"],
+        estimate: ["tahmin etmek"],
+        justify: ["hakli cikarmak", "savunmak"],
+        postpone: ["ertelemek"],
+        aesthetic: ["estetik"],
+        benevolent: ["yardimsever", "hayirsever"],
+        clandestine: ["gizli", "yasa disi"],
+        deterrent: ["caydirici"],
+        enigma: ["muamma", "gizem"],
+        protocol: ["protokol"],
+        encryption: ["sifreleme"],
+        payload: ["veri yuku", "payload"],
+        runtime: ["calisma zamani", "runtime"],
+        scalable: ["olceklenebilir"],
+        ticket: ["bilet"],
+        souvenir: ["hediyelik", "ani"],
+        excursion: ["gezi", "ekskursiyon"],
+        reception: ["resepsiyon", "karsilama"],
+        journey: ["yolculuk", "seyahat"],
+        audit: ["denetim", "teftis"],
+        budget: ["butce"],
+        contract: ["sozlesme", "kontrat"],
+        merger: ["birlesme"],
+        profit: ["kar", "kazanc"]
+      },
+      ja: {
+        dirty: ["kitanai", "汚い", "きたない"],
+        clean: ["kirei", "きれい", "綺麗", "清潔"],
+        brave: ["yuukan", "勇敢", "勇気"],
+        tired: ["tsukareta", "疲れた", "疲労"],
+        cheap: ["yasui", "安い", "やすい"],
+        simple: ["kantan", "簡単", "単純"],
+        safe: ["anzen", "安全", "無事"],
+        quick: ["hayai", "速い", "早い"],
+        honest: ["shoujiki", "正直", "誠実"],
+        heavy: ["omoi", "重い", "おもい"],
+        angry: ["okotta", "怒った", "怒り"],
+        hungry: ["onaka ga suita", "空腹", "腹減った"],
+        quiet: ["shizuka", "静か", "しずか"],
+        loud: ["urusai", "うるさい", "大声"],
+        empty: ["kara", "空", "から"],
+        full: ["ippai", "いっぱい", "満杯"],
+        narrow: ["semai", "狭い"],
+        wide: ["hiroi", "広い"],
+        early: ["hayai", "早い"],
+        late: ["osoi", "遅い"],
+        warm: ["atatakai", "温かい", "暖かい"],
+        cold: ["tsumetai", "samui", "寒い", "冷たい"],
+        dark: ["kurai", "暗い"],
+        bright: ["akarui", "明るい"],
+        clever: ["kashikoi", "賢い"],
+        polite: ["teinei", "丁寧"],
+        lazy: ["namakemono", "怠惰", "怠け者"],
+        careful: ["shinchou", "慎重", "注意深い"],
+        useful: ["benri", "便利", "有用"],
+        useless: ["yaku ni tatanai", "役に立たない"],
+        achieve: ["tassei", "達成", "果たす"],
+        accurate: ["seikaku", "正確"],
+        hesitate: ["tamerau", "躊躇", "ためらう"],
+        convenient: ["benri", "便利", "好都合"],
+        improve: ["kaizen", "改善", "上達"],
+        persuade: ["settoku", "説得"],
+        reliable: ["shinrai", "信頼できる"],
+        distribute: ["bunpai", "分配", "配布"],
+        emphasize: ["kyouchou", "強調"],
+        efficient: ["kouritsuteki", "効率的"],
+        appreciate: ["kansha", "感謝", "評価する"],
+        consequence: ["kekka", "結果", "結末"],
+        convince: ["nattoku", "納得させる"],
+        demand: ["juuyou", "需要", "要求"],
+        encourage: ["hagemasu", "励ます"],
+        flexible: ["juunan", "柔軟"],
+        frequent: ["hinpan", "頻繁"],
+        generate: ["seisei", "生成", "生み出す"],
+        ignore: ["mushi", "無視"],
+        influence: ["eikyou", "影響"],
+        maintain: ["iji", "維持"],
+        predict: ["yosoku", "予測"],
+        preserve: ["hozon", "保存"],
+        prevent: ["yobou", "予防", "防ぐ"],
+        recognize: ["ninshiki", "認識", "認める"],
+        significant: ["juudai", "重大", "重要"],
+        sufficient: ["juubun", "十分"],
+        threaten: ["odokasu", "脅かす"],
+        undertake: ["hikiukeru", "引き受ける"],
+        valuable: ["kichou", "貴重", "価値ある"],
+        ubiquitous: ["penzai", "遍在", "どこにでもある"],
+        ephemeral: ["hakanai", "儚い", "一時的"],
+        resilient: ["kaifukuryoku", "回復力", "弾力性"],
+        scrutiny: ["seisa", "精査"],
+        mitigate: ["kanwa", "緩和", "軽減"],
+        candid: ["solchoku", "率直"],
+        pragmatic: ["jitsuyouteki", "実用的"],
+        advocate: ["shichou", "主張", "提唱"],
+        feasible: ["jitsugen kanou", "実現可能"],
+        plausible: ["mottorashii", "もっともらしい"],
+        obsolete: ["kutai", "旧式", "廃れた"],
+        eloquent: ["yuben", "雄弁"],
+        meticulous: ["seimitsu", "綿密"],
+        ambiguous: ["aimai", "曖昧"],
+        reluctant: ["kiyoku nai", "消極的", "気が進まない"],
+        inevitable: ["fukahi", "不可避", "避けられない"],
+        coerce: ["kyousei", "強制"],
+        complacent: ["jiman", "自己満足"],
+        disparate: ["kotonaru", "異質", "共通点がない"],
+        exacerbate: ["akka", "悪化させる"],
+        fallacy: ["gabyuu", "誤謬", "誤り"],
+        lucid: ["meiseki", "明晰"],
+        mundane: ["heibon", "平凡", "日常的"],
+        nefarious: ["jaaku", "邪悪"],
+        paradox: ["gyakusetsu", "逆説", "パラドックス"],
+        deploy: ["deploi", "デプロイ", "配置"],
+        endpoint: ["endpoint", "エンドポイント"],
+        immutable: ["fuhen", "不変"],
+        compiler: ["konpaira", "コンパイラ"],
+        database: ["deetabeetsu", "データベース"],
+        danger: ["kiken", "危険"],
+        gentle: ["yasashii", "優しい", "穏やか"],
+        lonely: ["sabishii", "寂しい", "孤独"],
+        proud: ["hokori", "誇り", "自慢"],
+        strange: ["hen", "変", "奇妙"],
+        weak: ["yowai", "弱い"],
+        strong: ["tsuyoi", "強い"],
+        young: ["wakai", "若い"],
+        dry: ["kawaita", "乾いた", "乾燥"],
+        wet: ["nureta", "濡れた", "湿った"],
+        abandon: ["hoki", "放棄", "捨てる"],
+        acquire: ["shutoku", "習得", "獲得"],
+        adapt: ["tekiou", "適応"],
+        clarify: ["meikaku", "明確にする"],
+        compromise: ["dakyou", "妥協"],
+        confirm: ["kakunin", "確認"],
+        distinguish: ["kubetsu", "区別する"],
+        estimate: ["mitsumori", "見積もる"],
+        justify: ["seitouka", "正当化"],
+        postpone: ["enki", "延期"],
+        aesthetic: ["biteki", "美的", "エステ"],
+        benevolent: ["jihi", "慈悲深い"],
+        clandestine: ["himitsu", "秘密の"],
+        deterrent: ["yokushiryoku", "抑止力"],
+        enigma: ["nazo", "謎", "不可解"],
+        protocol: ["purotokoru", "プロトコル"],
+        encryption: ["angouka", "暗号化"],
+        payload: ["peiroodo", "ペイロード"],
+        runtime: ["rantaimu", "ランタイム"],
+        scalable: ["sukeraburu", "スケーラブル"],
+        ticket: ["kippu", "切符", "チケット"],
+        souvenir: ["omiyage", "お土産"],
+        excursion: ["ensoku", "遠足", "小旅行"],
+        reception: ["furonto", "受付", "フロント"],
+        journey: ["tabi", "旅", "旅行"],
+        audit: ["kansa", "監査"],
+        budget: ["yosan", "予算"],
+        contract: ["keiyaku", "契約"],
+        merger: ["gappei", "合併"],
+        profit: ["rieki", "利益"]
+      },
+      zh: {
+        dirty: ["zang", "脏"],
+        clean: ["ganjing", "干净", "打扫"],
+        brave: ["yonggan", "勇敢"],
+        tired: ["lei", "累", "疲劳"],
+        cheap: ["pianyi", "便宜"],
+        simple: ["jiandan", "简单"],
+        safe: ["anquan", "安全"],
+        quick: ["kuai", "快", "迅速"],
+        honest: ["chengshi", "诚实"],
+        heavy: ["zhong", "重"],
+        angry: ["shengqi", "生气"],
+        hungry: ["e", "饿"],
+        quiet: ["anjing", "安静"],
+        loud: ["dasheng", "大声", "吵"],
+        empty: ["kong", "空"],
+        full: ["man", "满"],
+        narrow: ["zhai", "窄"],
+        wide: ["kuan", "宽"],
+        early: ["zao", "早"],
+        late: ["wan", "晚", "迟"],
+        warm: ["wennuan", "温暖", "暖和"],
+        cold: ["leng", "冷"],
+        dark: ["an", "暗", "黑"],
+        bright: ["liang", "亮", "明亮"],
+        clever: ["congming", "聪明"],
+        polite: ["youlima", "有礼貌"],
+        lazy: ["lan", "懒"],
+        careful: ["xiaoxin", "小心", "仔细"],
+        useful: ["youyong", "有用"],
+        useless: ["meiyong", "没用"],
+        achieve: ["dachang", "达成", "实现"],
+        accurate: ["zhunque", "准确"],
+        hesitate: ["youyu", "犹豫"],
+        convenient: ["fangbian", "方便"],
+        improve: ["gaishan", "改善", "提高"],
+        persuade: ["shuofu", "说服"],
+        reliable: ["keka", "可靠"],
+        distribute: ["fenfa", "分发", "分配"],
+        emphasize: ["qiangdiao", "强调"],
+        efficient: ["gaoxiao", "高效"],
+        appreciate: ["ganxie", "感谢", "欣赏"],
+        consequence: ["jieguo", "结果", "后果"],
+        convince: ["shuofu", "说服"],
+        demand: ["xuqiu", "需求", "要求"],
+        encourage: ["guli", "鼓励"],
+        flexible: ["linghuo", "灵活"],
+        frequent: ["pinfan", "频繁"],
+        generate: ["shengcheng", "生成", "产生"],
+        ignore: ["hushi", "忽视", "不理"],
+        influence: ["yingxiang", "影响"],
+        maintain: ["weichi", "维持", "保持"],
+        predict: ["yuce", "预测"],
+        preserve: ["baocun", "保存", "保护"],
+        prevent: ["yufang", "预防", "防止"],
+        recognize: ["renshi", "认出", "承认"],
+        significant: ["zhongda", "重大", "重要"],
+        sufficient: ["chongfen", "充分", "足够"],
+        threaten: ["weixie", "威胁"],
+        undertake: ["chengdang", "承担"],
+        valuable: ["youjiazi", "宝贵", "有价值"],
+        ubiquitous: ["wusuobuzai", "无处不在"],
+        ephemeral: ["duanzan", "短暂"],
+        resilient: ["yourenxing", "有韧性"],
+        scrutiny: ["shencha", "审查"],
+        mitigate: ["huanjie", "缓解", "减轻"],
+        candid: ["tancheng", "坦诚"],
+        pragmatic: ["wushi", "务实"],
+        advocate: ["tichang", "提倡", "主张"],
+        feasible: ["kexing", "可行"],
+        plausible: ["heli", "合理", "貌似可信"],
+        obsolete: ["taotai", "淘汰", "过时"],
+        eloquent: ["xiongbian", "雄辩"],
+        meticulous: ["yisibugou", "一丝不苟"],
+        ambiguous: ["mohu", "模棱两可", "模糊"],
+        reluctant: ["buganyuan", "不情愿"],
+        inevitable: ["bukebimian", "不可避免"],
+        coerce: ["poqiang", "强迫"],
+        complacent: ["ziman", "自满"],
+        disparate: ["jiaranbutong", "截然不同"],
+        exacerbate: ["jiaju", "加剧", "恶化"],
+        fallacy: ["miuwu", "谬误"],
+        lucid: ["qingxi", "清晰"],
+        mundane: ["pingfan", "平凡", "世俗"],
+        nefarious: ["xie'e", "邪恶"],
+        paradox: ["beilun", "悖论"],
+        deploy: ["bushu", "部署"],
+        endpoint: ["duandian", "端点"],
+        immutable: ["bukebian", "不可变"],
+        compiler: ["bianyigi", "编译器"],
+        database: ["shujuku", "数据库"],
+        danger: ["weixian", "危险"],
+        gentle: ["wenhe", "温柔", "温和"],
+        lonely: ["gudu", "孤独"],
+        proud: ["jiao'ao", "骄傲", "自豪"],
+        strange: ["qiguai", "奇怪", "陌生"],
+        weak: ["ruo", "弱", "虚弱"],
+        strong: ["qiang", "强", "强壮"],
+        young: ["nianqing", "年轻"],
+        dry: ["gan", "干", "干燥"],
+        wet: ["shi", "湿", "潮湿"],
+        abandon: ["fangqi", "放弃", "抛弃"],
+        acquire: ["huode", "获得", "取得"],
+        adapt: ["shiying", "适应"],
+        clarify: ["chengqing", "澄清", "说明"],
+        compromise: ["tuoxie", "妥协"],
+        confirm: ["queren", "确认"],
+        distinguish: ["qufen", "区分", "辨别"],
+        estimate: ["guji", "估计", "估算"],
+        justify: ["zhengming", "证明...合理"],
+        postpone: ["tui'chi", "推迟", "延期"],
+        aesthetic: ["meixue", "美学", "审美的"],
+        benevolent: ["renci", "仁慈", "好心"],
+        clandestine: ["mimi", "秘密的", "暗中的"],
+        deterrent: ["weishe", "威慑"],
+        enigma: ["mi", "谜", "不可思议"],
+        protocol: ["xieyi", "协议"],
+        encryption: ["jiami", "加密"],
+        payload: ["fuzai", "有效载荷"],
+        runtime: ["yunxingzhi", "运行时"],
+        scalable: ["kexuozhan", "可扩展"],
+        ticket: ["chepiao", "车票", "门票"],
+        souvenir: ["jinianpin", "纪念品"],
+        excursion: ["duantu", "短途旅行"],
+        reception: ["qiantai", "接待", "前台"],
+        journey: ["lvcheng", "旅程", "旅行"],
+        audit: ["shenji", "审计"],
+        budget: ["yusuan", "预算"],
+        contract: ["hetong", "合同"],
+        merger: ["binggou", "合并"],
+        profit: ["lirun", "利润"]
+      },
+      ar: {
+        dirty: ["wasikh", "وسخ", "قذر"],
+        clean: ["nazif", "نظيف", "تنظيف"],
+        brave: ["shujaa", "شجاع"],
+        tired: ["taaban", "تعبان", "مرهق"],
+        cheap: ["rakhees", "رخيص"],
+        simple: ["baseet", "بسيط"],
+        safe: ["aamin", "آمن"],
+        quick: ["saree", "سريع"],
+        honest: ["saadiq", "صادق", "أمين"],
+        heavy: ["thaqeel", "ثقيل"],
+        angry: ["ghadban", "غاضب"],
+        hungry: ["jaian", "جائع"],
+        quiet: ["hadi", "هادئ"],
+        loud: ["saakhib", "صاخب", "عالي"],
+        empty: ["farigh", "فارغ"],
+        full: ["mumtali", "ممتلئ"],
+        narrow: ["dayyiq", "ضيق"],
+        wide: ["wasee", "واسع"],
+        early: ["mubakkir", "مبكر"],
+        late: ["muta'akhkhir", "متأخر"],
+        warm: ["dafi", "دافئ"],
+        cold: ["barid", "بارد"],
+        dark: ["muzlim", "مظلم"],
+        bright: ["mushriq", "مشرق", "لامع"],
+        clever: ["dhaki", "ذكي"],
+        polite: ["mu'addab", "مؤدب"],
+        lazy: ["kasool", "كسول"],
+        careful: ["harees", "حريص"],
+        useful: ["mufeed", "مفيد"],
+        useless: ["ghayr mufeed", "عديم الفائدة"],
+        achieve: ["tahqeeq", "تحقيق", "إنجاز"],
+        accurate: ["daqeeq", "دقيق"],
+        hesitate: ["taraddud", "تردد"],
+        convenient: ["mula'im", "ملائم", "مريح"],
+        improve: ["tahseen", "تحسين", "تطوير"],
+        persuade: ["iqnaa", "إقناع"],
+        reliable: ["mawthooq", "موثوق"],
+        distribute: ["tawzee", "توزيع"],
+        emphasize: ["ta'keed", "تأكيد"],
+        efficient: ["kufo", "كفء", "فعال"],
+        appreciate: ["taqdeer", "تقدير"],
+        consequence: ["natija", "نتيجة", "عاقبة"],
+        convince: ["iqnaa", "يقنع"],
+        demand: ["talab", "طلب"],
+        encourage: ["tashjee", "تشجيع"],
+        flexible: ["marin", "مرن"],
+        frequent: ["mutakarrir", "متكرر"],
+        generate: ["tawleed", "توليد", "إنشاء"],
+        ignore: ["tajahul", "تجاهل"],
+        influence: ["ta'theer", "تأثير"],
+        maintain: ["hifz", "حفظ", "صيانة"],
+        predict: ["tanabbu", "تنبؤ"],
+        preserve: ["himaya", "حماية", "حفظ"],
+        prevent: ["man'", "منع", "وقاية"],
+        recognize: ["ta'arruf", "تعرف"],
+        significant: ["muhimm", "مهم", "كبير"],
+        sufficient: ["kafi", "كافٍ"],
+        threaten: ["tahdeed", "تهديد"],
+        undertake: ["ta'ahhud", "تعهد", "مباشرة"],
+        valuable: ["thameen", "ثمين", "قيم"],
+        ubiquitous: ["shaii", "شائع", "في كل مكان"],
+        ephemeral: ["za'il", "زائل", "عابر"],
+        resilient: ["marin", "مرن", "صامد"],
+        scrutiny: ["tadqeeq", "تدقيق", "فحص"],
+        mitigate: ["takhfeef", "تخفيف"],
+        candid: ["sareeh", "صريح"],
+        pragmatic: ["amali", "عملي", "براغماتي"],
+        advocate: ["mudafee", "مدافع", "تأييد"],
+        feasible: ["mumkin", "ممكن", "قابل للتطبيق"],
+        plausible: ["ma'qool", "معقول"],
+        obsolete: ["muhmal", "مهمل", "قديم"],
+        eloquent: ["baleegh", "بليغ", "فصيح"],
+        meticulous: ["daqeeq", "دقيق جدا"],
+        ambiguous: ["ghamid", "غامض"],
+        reluctant: ["mutaraddid", "متردد"],
+        inevitable: ["hatmi", "حتمي", "لا مفر منه"],
+        coerce: ["ijbar", "إجبار"],
+        complacent: ["radi an nafsihi", "راضٍ عن نفسه"],
+        disparate: ["mutabayen", "متباين"],
+        exacerbate: ["tafaqqum", "تفاقم"],
+        fallacy: ["mughalata", "مغالطة"],
+        lucid: ["wadih", "واضح"],
+        mundane: ["aadi", "عادي", "روتيني"],
+        nefarious: ["shareer", "شرير"],
+        paradox: ["munaqada", "مفارقة"],
+        deploy: ["nashr", "نشر"],
+        endpoint: ["nuqtat nihaya", "نقطة نهاية"],
+        immutable: ["thabit", "ثابت", "غير قابل للتغيير"],
+        compiler: ["mutarjim", "مترجم"],
+        database: ["qa'idat bayanat", "قاعدة بيانات"],
+        danger: ["khatar", "خطر"],
+        gentle: ["lateef", "لطيف"],
+        lonely: ["waheed", "وحيد"],
+        proud: ["fakhoor", "فخور"],
+        strange: ["ghareeb", "غريب"],
+        weak: ["daeef", "ضعيف"],
+        strong: ["qawi", "قوي"],
+        young: ["shabb", "شاب", "صغير"],
+        dry: ["jaff", "جاف"],
+        wet: ["muballal", "مبتل"],
+        abandon: ["tark", "ترك", "تخلى"],
+        acquire: ["iktisab", "اكتساب", "حصول"],
+        adapt: ["takayyuf", "تكيف"],
+        clarify: ["tawdeeh", "توضيح"],
+        compromise: ["taswiya", "حل وسط", "تنازل"],
+        confirm: ["ta'keed", "تأكيد"],
+        distinguish: ["tamyeez", "تمييز"],
+        estimate: ["taqdeer", "تقدير"],
+        justify: ["tabreer", "تبرير"],
+        postpone: ["ta'jeel", "تأجيل"],
+        aesthetic: ["jamali", "جمالي"],
+        benevolent: ["muhsin", "كريم", "خير"],
+        clandestine: ["sirri", "سري"],
+        deterrent: ["radi'", "رادع"],
+        enigma: ["lughz", "لغز"],
+        protocol: ["borotokol", "بروتوكول"],
+        encryption: ["tashfeer", "تشفير"],
+        payload: ["humula", "حمولة"],
+        runtime: ["beea't al tashgheel", "بيئة التشغيل"],
+        scalable: ["qabil lil tawassu", "قابل للتوسع"],
+        ticket: ["tadhkira", "تذكرة"],
+        souvenir: ["tadhkar", "تذكار"],
+        excursion: ["rihla", "رحلة قصيرة"],
+        reception: ["istiqbal", "استقبال"],
+        journey: ["rihla", "رحلة"],
+        audit: ["tadqeeq", "تدقيق مالي"],
+        budget: ["mizaniya", "ميزانية"],
+        contract: ["aqd", "عقد"],
+        merger: ["indimaj", "اندماج"],
+        profit: ["ribh", "ربح"]
+      }
+    };
+
+    // Dictionary compilation helper
+    function getWordDeckList(langCode, packKey) {
+      const items = MASTER_WORDS[packKey] || MASTER_WORDS['b2'] || MASTER_WORDS['a2'];
+      const langTrans = TRANSLATIONS[langCode] || TRANSLATIONS['ru'];
+      const fallbackTrans = TRANSLATIONS['ru'];
+
+      return items.map(entry => {
+        const answers = langTrans[entry.q] || fallbackTrans[entry.q] || [entry.q];
+        return {
+          q: entry.q,
+          a: answers,
+          ex: entry.ex
+        };
+      });
+    }
+
+    /* -----------------------------------------------------------------
+     * 2. Mechanical Audio Synthesis (Web Audio API)
+     * ----------------------------------------------------------------- */
+    class AudioSynthesizer {
+      constructor() {
+        this.ctx = null;
+      }
+      init() {
+        if (!this.ctx) {
+          const AudioContext = window.AudioContext || window.webkitAudioContext;
+          if (AudioContext) this.ctx = new AudioContext();
+        }
+        if (this.ctx && this.ctx.state === 'suspended') {
+          this.ctx.resume();
+        }
+      }
+      playSwitch(profile) {
+        if (profile === 'none') return;
+        this.init();
+        if (!this.ctx) return;
+        const now = this.ctx.currentTime;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+
+        if (profile === 'blue') {
+          osc.type = 'square';
+          osc.frequency.setValueAtTime(2200, now);
+          osc.frequency.exponentialRampToValueAtTime(700, now + 0.025);
+          gain.gain.setValueAtTime(0.08, now);
+          gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.035);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start(now);
+          osc.stop(now + 0.04);
+        } else if (profile === 'brown') {
+          osc.type = 'triangle';
+          osc.frequency.setValueAtTime(450, now);
+          osc.frequency.exponentialRampToValueAtTime(140, now + 0.04);
+          gain.gain.setValueAtTime(0.12, now);
+          gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.05);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start(now);
+          osc.stop(now + 0.055);
+        } else if (profile === 'cream') {
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(220, now);
+          osc.frequency.exponentialRampToValueAtTime(70, now + 0.06);
+          gain.gain.setValueAtTime(0.18, now);
+          gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.07);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start(now);
+          osc.stop(now + 0.075);
+        }
+      }
+      playTone(freq, type = 'sine', duration = 0.15, vol = 0.15) {
+        this.init();
+        if (!this.ctx) return;
+        const now = this.ctx.currentTime;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = type;
+        osc.frequency.setValueAtTime(freq, now);
+        gain.gain.setValueAtTime(vol, now);
+        gain.gain.exponentialRampToValueAtTime(0.0001, now + duration);
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start(now);
+        osc.stop(now + duration);
+      }
+      playSuccess() {
+        this.playTone(523.25, 'sine', 0.08, 0.14);
+        setTimeout(() => this.playTone(659.25, 'sine', 0.12, 0.16), 65);
+      }
+      playStreak() {
+        this.playTone(523.25, 'triangle', 0.1, 0.15);
+        setTimeout(() => this.playTone(659.25, 'triangle', 0.1, 0.15), 60);
+        setTimeout(() => this.playTone(783.99, 'triangle', 0.2, 0.2), 120);
+      }
+      playError() {
+        this.playTone(180, 'sawtooth', 0.18, 0.2);
+      }
+      playGameOver() {
+        this.playTone(220, 'sine', 0.2, 0.2);
+        setTimeout(() => this.playTone(174.61, 'sine', 0.35, 0.25), 180);
+      }
+    }
+    const audio = new AudioSynthesizer();
+
+    /* -----------------------------------------------------------------
+     * 3. Levenshtein Fuzzy Matching
+     * ----------------------------------------------------------------- */
+    function levenshtein(a, b) {
+      const an = a ? a.length : 0;
+      const bn = b ? b.length : 0;
+      if (an === 0) return bn;
+      if (bn === 0) return an;
+      const matrix = [];
+      for (let i = 0; i <= bn; ++i) matrix[i] = [i];
+      for (let i = 0; i <= an; ++i) matrix[0][i] = i;
+      for (let i = 1; i <= bn; ++i) {
+        for (let j = 1; j <= an; ++j) {
+          if (b.charAt(i - 1) === a.charAt(j - 1)) {
+            matrix[i][j] = matrix[i - 1][j - 1];
+          } else {
+            matrix[i][j] = Math.min(
+              matrix[i - 1][j - 1] + 1,
+              Math.min(matrix[i][j - 1] + 1, matrix[i - 1][j] + 1)
+            );
+          }
+        }
+      }
+      return matrix[bn][an];
+    }
+
+    function cleanString(str) {
+      return (str || '')
+        .toLowerCase()
+        .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+        .replace(/ё/g, 'е')
+        .replace(/[^a-z0-9а-яぁ-んァ-ヶ一-龯\s]/g, ' ')
+        .trim();
+    }
+
+    function testAnswer(inputRaw, validAnswers) {
+      const input = cleanString(inputRaw);
+      if (!input) return { ok: false, fuzzy: false };
+
+      for (const ans of validAnswers) {
+        const target = cleanString(ans);
+        if (input === target) return { ok: true, fuzzy: false };
+        if (target.includes(input) || input.includes(target)) {
+          if (Math.abs(input.length - target.length) <= 2) {
+            return { ok: true, fuzzy: false };
+          }
+        }
+        if (target.length >= 5) {
+          if (levenshtein(input, target) === 1) {
+            return { ok: true, fuzzy: true };
+          }
+        }
+      }
+      return { ok: false, fuzzy: false };
+    }
+
+    /* -----------------------------------------------------------------
+     * 4. State Management
+     * ----------------------------------------------------------------- */
+    const state = {
+      lang: 'ru',
+      direction: 'forward', // 'forward': EN -> Target, 'reverse': Target -> EN
+      mode: 'survival', // 'survival', 'hardcore', 'sprint', 'zen', 'mistakes'
+      pack: 'b2',
+      sound: 'brown',
+      theme: 'serika',
+      isActive: false, // Strict: FALSE until Start button / key is clicked
+      timeLeft: 30.0,
+      timerInterval: null,
+      score: 0,
+      streak: 0,
+      maxStreak: 0,
+      totalTries: 0,
+      correctTries: 0,
+      skipsRemaining: 5,
+      currentCard: null,
+      deck: [],
+      mistakeCards: [],
+      roundHistory: [],
+      wpmTimeline: [],
+      startTime: 0,
+      customList: []
+    };
+
+    /* -----------------------------------------------------------------
+     * 5. Speech Synthesis
+     * ----------------------------------------------------------------- */
+    function pronounceWord(text, langCode) {
+      if (!window.speechSynthesis) return;
+      try {
+        window.speechSynthesis.cancel();
+        const utter = new SpeechSynthesisUtterance(text);
+        utter.lang = langCode || 'en-US';
+        utter.rate = 0.95;
+        window.speechSynthesis.speak(utter);
+      } catch (e) {}
+    }
+
+    /* -----------------------------------------------------------------
+     * 6. High Score & Daily Streak
+     * ----------------------------------------------------------------- */
+    function getHsKey() {
+      return `lexi_hs_${state.lang}_${state.direction}_${state.mode}_${state.pack}`;
+    }
+
+    function readHighScore() {
+      return parseInt(localStorage.getItem(getHsKey()) || '0', 10);
+    }
+
+    function recordHighScore(val) {
+      const cur = readHighScore();
+      if (val > cur) {
+        localStorage.setItem(getHsKey(), val.toString());
+        return true;
+      }
+      return false;
+    }
+
+    function updateStreakDisplay() {
+      const today = new Date().toISOString().slice(0, 10);
+      const last = localStorage.getItem('lexi_last_visit');
+      let strk = parseInt(localStorage.getItem('lexi_daily_streak') || '0', 10);
+
+      if (last) {
+        const diff = Math.round((new Date(today) - new Date(last)) / (1000 * 60 * 60 * 24));
+        if (diff === 1) strk += 1;
+        else if (diff > 1) strk = 1;
+      } else {
+        strk = 1;
+      }
+
+      localStorage.setItem('lexi_last_visit', today);
+      localStorage.setItem('lexi_daily_streak', strk.toString());
+      document.getElementById('dailyStreakDisplay').textContent = strk;
+    }
+
+    function showToast(title, msg, icon = '🏆') {
+      const container = document.getElementById('toastContainer');
+      const toast = document.createElement('div');
+      toast.className = 'bg-theme-card border-2 border-theme-main text-theme-text px-4 py-3 rounded-2xl shadow-2xl flex items-center space-x-3 pointer-events-auto transition transform translate-y-2 opacity-0 text-xs';
+      toast.innerHTML = `
+        <span class="text-xl">${icon}</span>
+        <div>
+          <div class="font-bold text-theme-main">${title}</div>
+          <div class="text-theme-sub text-[11px]">${msg}</div>
+        </div>
+      `;
+      container.appendChild(toast);
+      requestAnimationFrame(() => toast.classList.remove('translate-y-2', 'opacity-0'));
+      setTimeout(() => {
+        toast.classList.add('opacity-0', 'translate-y-[-10px]');
+        setTimeout(() => toast.remove(), 300);
+      }, 3000);
+    }
+
+    /* -----------------------------------------------------------------
+     * 7. Deck Builder
+     * ----------------------------------------------------------------- */
+    function buildDeck() {
+      if (state.mode === 'mistakes') {
+        return [...state.mistakeCards].sort(() => Math.random() - 0.5);
+      }
+      if (state.pack === 'custom') {
+        return [...state.customList].sort(() => Math.random() - 0.5);
+      }
+
+      const rawList = getWordDeckList(state.lang, state.pack);
+      const cards = [];
+
+      rawList.forEach(item => {
+        if (state.direction === 'forward') {
+          // English prompt -> Target answers
+          cards.push({
+            prompt: item.q,
+            answers: item.a,
+            ex: item.ex,
+            voiceLang: 'en-US'
+          });
+        } else {
+          // Target prompt -> English answers
+          cards.push({
+            prompt: item.a[0],
+            answers: [item.q],
+            ex: item.ex,
+            voiceLang: LANGUAGES_META[state.lang].voice
+          });
+        }
+      });
+
+      return cards.sort(() => Math.random() - 0.5);
+    }
+
+    function loadNextCard() {
+      if (state.deck.length === 0) {
+        state.deck = buildDeck();
+        if (state.deck.length === 0) {
+          terminateGame();
+          return;
+        }
+      }
+
+      state.currentCard = state.deck.pop();
+      document.getElementById('wordDisplay').textContent = state.currentCard.prompt;
+      document.getElementById('exampleSentence').textContent = `"${state.currentCard.ex || 'Type translation'}"`;
+      document.getElementById('typingInput').value = '';
+      hideHint();
+
+      pronounceWord(state.currentCard.prompt, state.currentCard.voiceLang);
+    }
+
+    /* -----------------------------------------------------------------
+     * 8. Game Lifecycle (STRICT START ONLY)
+     * ----------------------------------------------------------------- */
+    function updateSkipUI() {
+      const isZen = state.mode === 'zen';
+      const skipsCountEl = document.getElementById('hudSkipsCounter');
+      const skipLabelEl = document.getElementById('skipBtnLabel');
+      const skipBtn = document.getElementById('skipActionBtn');
+
+      if (isZen) {
+        skipsCountEl.textContent = '∞';
+        skipLabelEl.textContent = 'skip (unlimited)';
+        skipBtn.classList.remove('opacity-40', 'cursor-not-allowed');
+      } else {
+        skipsCountEl.textContent = state.skipsRemaining;
+        skipLabelEl.textContent = `skip (${state.skipsRemaining} left)`;
+        if (state.skipsRemaining <= 0) {
+          skipBtn.classList.add('opacity-40', 'cursor-not-allowed');
+        } else {
+          skipBtn.classList.remove('opacity-40', 'cursor-not-allowed');
+        }
+      }
+    }
+
+    function launchGame() {
+      state.isActive = true;
+      state.score = 0;
+      state.streak = 0;
+      state.maxStreak = 0;
+      state.totalTries = 0;
+      state.correctTries = 0;
+      state.skipsRemaining = 5;
+      state.roundHistory = [];
+      state.wpmTimeline = [];
+      state.startTime = Date.now();
+      state.deck = buildDeck();
+
+      updateSkipUI();
+
+      if (state.mode === 'survival' || state.mode === 'mistakes') {
+        state.timeLeft = 30.0;
+        document.getElementById('timerUnit').textContent = 's';
+      } else if (state.mode === 'survival60') {
+        state.timeLeft = 60.0;
+        document.getElementById('timerUnit').textContent = 's';
+      } else if (state.mode === 'hardcore') {
+        state.timeLeft = 15.0;
+        document.getElementById('timerUnit').textContent = 's';
+      } else if (state.mode === 'sprint') {
+        state.timeLeft = 0.0;
+        document.getElementById('timerUnit').textContent = '/ 25';
+      } else if (state.mode === 'zen') {
+        state.timeLeft = 0.0;
+        document.getElementById('timerUnit').textContent = 's';
+      }
+
+      // Hide start and result screens, show active arena
+      document.getElementById('startBannerOverlay').classList.add('hidden');
+      document.getElementById('resultsScreen').classList.add('hidden');
+      document.getElementById('gameArena').classList.remove('hidden');
+
+      const hud = document.getElementById('liveHud');
+      hud.classList.remove('opacity-20', 'pointer-events-none');
+
+      document.getElementById('hudHighScore').textContent = readHighScore();
+      document.getElementById('streakCounter').textContent = '0';
+      document.getElementById('streakIcon').textContent = '⚡';
+      document.getElementById('streakIcon').classList.remove('animate-flame');
+
+      if (state.timerInterval) clearInterval(state.timerInterval);
+
+      // Start the countdown timer only after user started
+      state.timerInterval = setInterval(() => {
+        if (!state.isActive) return;
+
+        if (state.mode === 'survival' || state.mode === 'survival60' || state.mode === 'hardcore' || state.mode === 'mistakes') {
+          state.timeLeft = Math.max(0, state.timeLeft - 0.1);
+          document.getElementById('mainTimer').textContent = state.timeLeft.toFixed(1);
+
+          if (state.timeLeft <= 5.0) {
+            document.getElementById('mainTimer').classList.add('text-theme-error');
+            document.getElementById('mainTimer').classList.remove('text-theme-main');
+          } else {
+            document.getElementById('mainTimer').classList.remove('text-theme-error');
+            document.getElementById('mainTimer').classList.add('text-theme-main');
+          }
+
+          if (state.timeLeft <= 0) {
+            audio.playGameOver();
+            terminateGame();
+          }
+        } else if (state.mode === 'sprint') {
+          state.timeLeft += 0.1;
+          document.getElementById('mainTimer').textContent = `${state.score}`;
+          if (state.score >= 25) {
+            terminateGame();
+          }
+        } else if (state.mode === 'zen') {
+          state.timeLeft += 0.1;
+          document.getElementById('mainTimer').textContent = Math.floor(state.timeLeft).toString();
+        }
+
+        // Sampling WPM
+        const elapsedSec = (Date.now() - state.startTime) / 1000;
+        if (elapsedSec > 0 && Math.floor(elapsedSec) > state.wpmTimeline.length) {
+          const wpm = Math.round((state.score / (elapsedSec / 60))) || 0;
+          state.wpmTimeline.push(wpm);
+        }
+      }, 100);
+
+      loadNextCard();
+      const input = document.getElementById('typingInput');
+      input.focus();
+    }
+
+    function renderTimeBonus(text, isBonus) {
+      const anchor = document.getElementById('bonusFlyAnchor');
+      const el = document.createElement('div');
+      el.className = `font-black text-sm select-none animate-floatBonus ${isBonus ? 'text-orange-400' : 'text-green-400'}`;
+      el.textContent = text;
+      anchor.appendChild(el);
+      setTimeout(() => el.remove(), 800);
+    }
+
+    function submitAnswer() {
+      if (!state.isActive || !state.currentCard) return;
+      const text = document.getElementById('typingInput').value.trim();
+      if (!text) return;
+
+      state.totalTries++;
+      const res = testAnswer(text, state.currentCard.answers);
+
+      if (res.ok) {
+        state.score++;
+        state.correctTries++;
+        state.streak++;
+        if (state.streak > state.maxStreak) state.maxStreak = state.streak;
+
+        // Survival Bonus
+        if (state.mode === 'survival' || state.mode === 'survival60' || state.mode === 'mistakes') {
+          const bonus = state.streak >= 3 ? 5.0 : 4.0;
+          state.timeLeft += bonus;
+          renderTimeBonus(`+${bonus}s`, state.streak >= 3);
+        } else if (state.mode === 'hardcore') {
+          state.timeLeft += 2.0;
+          renderTimeBonus('+2s', false);
+        }
+
+        if (state.streak >= 5) {
+          audio.playStreak();
+          document.getElementById('streakIcon').textContent = '🔥';
+          document.getElementById('streakIcon').classList.add('animate-flame');
+        } else {
+          audio.playSuccess();
+        }
+
+        if (res.fuzzy) {
+          showInputNotice('⚡ Almost! (Fuzzy match)', 'bg-yellow-500/20 text-yellow-400');
+        }
+
+        state.roundHistory.push({
+          prompt: state.currentCard.prompt,
+          answer: state.currentCard.answers[0],
+          input: text,
+          ok: true
+        });
+
+        // Clear if fixed
+        state.mistakeCards = state.mistakeCards.filter(c => c.prompt !== state.currentCard.prompt);
+        syncMistakeButton();
+
+        document.getElementById('streakCounter').textContent = state.streak;
+
+        const w = document.getElementById('wordDisplay');
+        w.classList.add('scale-105', 'text-theme-main');
+        setTimeout(() => w.classList.remove('scale-105', 'text-theme-main'), 120);
+
+        loadNextCard();
+      } else {
+        audio.playError();
+        state.streak = 0;
+        document.getElementById('streakCounter').textContent = '0';
+        document.getElementById('streakIcon').textContent = '⚡';
+        document.getElementById('streakIcon').classList.remove('animate-flame');
+
+        const inputEl = document.getElementById('typingInput');
+        inputEl.classList.add('animate-errorShake', 'border-theme-error');
+        setTimeout(() => inputEl.classList.remove('animate-errorShake', 'border-theme-error'), 300);
+
+        if (state.mode === 'hardcore') {
+          state.roundHistory.push({
+            prompt: state.currentCard.prompt,
+            answer: state.currentCard.answers[0],
+            input: text,
+            ok: false
+          });
+          storeMistake(state.currentCard);
+          terminateGame();
+        }
+      }
+    }
+
+    function skipCard() {
+      if (!state.isActive || !state.currentCard) return;
+
+      if (state.mode !== 'zen') {
+        if (state.skipsRemaining <= 0) {
+          audio.playError();
+          showInputNotice('No skips left!', 'bg-red-500/20 text-red-400');
+          const skipBtn = document.getElementById('skipActionBtn');
+          skipBtn.classList.add('animate-errorShake');
+          setTimeout(() => skipBtn.classList.remove('animate-errorShake'), 300);
+          return;
+        }
+        state.skipsRemaining--;
+        updateSkipUI();
+      }
+
+      state.totalTries++;
+      state.streak = 0;
+      document.getElementById('streakCounter').textContent = '0';
+      document.getElementById('streakIcon').textContent = '⚡';
+      document.getElementById('streakIcon').classList.remove('animate-flame');
+
+      state.roundHistory.push({
+        prompt: state.currentCard.prompt,
+        answer: state.currentCard.answers[0],
+        input: '—',
+        ok: false
+      });
+
+      storeMistake(state.currentCard);
+
+      if (state.mode === 'hardcore') {
+        terminateGame();
+        return;
+      }
+
+      loadNextCard();
+      document.getElementById('typingInput').focus();
+    }
+
+    function storeMistake(card) {
+      if (!state.mistakeCards.some(c => c.prompt === card.prompt)) {
+        state.mistakeCards.push(card);
+      }
+      syncMistakeButton();
+    }
+
+    function syncMistakeButton() {
+      const count = state.mistakeCards.length;
+      document.getElementById('mistakeBadge').textContent = count;
+      const item = document.getElementById('mistakesDropdownItem');
+      if (count > 0) item.classList.remove('hidden');
+      else item.classList.add('hidden');
+    }
+
+    function showInputNotice(msg, colorClass) {
+      const notice = document.getElementById('inputNotice');
+      notice.textContent = msg;
+      notice.className = `absolute -top-3.5 right-4 px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider ${colorClass}`;
+      notice.classList.remove('hidden');
+      setTimeout(() => notice.classList.add('hidden'), 1300);
+    }
+
+    function activateHint() {
+      if (!state.isActive || !state.currentCard) return;
+      if (state.mode === 'survival' || state.mode === 'hardcore' || state.mode === 'mistakes') {
+        state.timeLeft = Math.max(1.0, state.timeLeft - 2.0);
+        renderTimeBonus('-2s', false);
+      }
+      const prime = state.currentCard.answers[0] || '';
+      const letters = prime.slice(0, Math.ceil(prime.length / 2)) + '...';
+      document.getElementById('hintLetters').textContent = `💡 Hint: ${letters}`;
+      document.getElementById('hintRevealBox').classList.remove('opacity-0');
+    }
+
+    function hideHint() {
+      document.getElementById('hintRevealBox').classList.add('opacity-0');
+      document.getElementById('hintLetters').textContent = '';
+    }
+
+    function terminateGame() {
+      state.isActive = false;
+      if (state.timerInterval) clearInterval(state.timerInterval);
+
+      const isNewRecord = recordHighScore(state.score);
+      const elapsedSec = Math.max(1, (Date.now() - state.startTime) / 1000);
+      const wpm = Math.round((state.score / (elapsedSec / 60))) || 0;
+      const acc = state.totalTries > 0 ? Math.round((state.correctTries / state.totalTries) * 100) : 100;
+
+      document.getElementById('resWordsCount').textContent = state.score;
+      document.getElementById('resWpm').textContent = wpm;
+      document.getElementById('resAccuracy').textContent = `${acc}%`;
+      document.getElementById('resMaxStreak').textContent = state.maxStreak;
+      document.getElementById('resultSubHeader').textContent = isNewRecord ? '🏆 NEW RECORD!' : 'Session Complete';
+
+      // Words Review List
+      const listEl = document.getElementById('roundWordList');
+      listEl.innerHTML = '';
+      let mistakesNum = 0;
+
+      state.roundHistory.slice().reverse().forEach(row => {
+        if (!row.ok) mistakesNum++;
+        const item = document.createElement('div');
+        item.className = 'flex items-center justify-between py-1 border-b border-theme-sub/10';
+        item.innerHTML = `
+          <div class="flex items-center space-x-2">
+            <span class="${row.ok ? 'text-green-400 font-bold' : 'text-theme-error font-bold'}">${row.ok ? '✓' : '✕'}</span>
+            <span class="font-bold text-theme-text">${row.prompt}</span>
+          </div>
+          <div class="text-theme-sub text-right">
+            <span class="text-theme-text font-medium">${row.answer}</span>
+            ${row.input !== '—' && !row.ok ? `<span class="opacity-60 text-[10px] ml-1">(${row.input})</span>` : ''}
+          </div>
+        `;
+        listEl.appendChild(item);
+      });
+      document.getElementById('resReviewSummary').textContent = `${mistakesNum} mistakes`;
+
+      const mistakeBtn = document.getElementById('trainMistakesBtn');
+      if (state.mistakeCards.length > 0) {
+        mistakeBtn.classList.remove('hidden');
+        mistakeBtn.textContent = `Practice Mistakes (${state.mistakeCards.length})`;
+      } else {
+        mistakeBtn.classList.add('hidden');
+      }
+
+      drawSpeedChart(state.wpmTimeline);
+
+      document.getElementById('gameArena').classList.add('hidden');
+      document.getElementById('resultsScreen').classList.remove('hidden');
+      document.getElementById('liveHud').classList.add('opacity-20', 'pointer-events-none');
+    }
+
+    /* -----------------------------------------------------------------
+     * 9. HTML5 Canvas WPM Chart
+     * ----------------------------------------------------------------- */
+    function drawSpeedChart(data) {
+      const canvas = document.getElementById('wpmChart');
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d');
+      const rect = canvas.parentElement.getBoundingClientRect();
+      canvas.width = rect.width;
+      canvas.height = rect.height;
+
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      if (!data || data.length < 2) {
+        ctx.fillStyle = '#646669';
+        ctx.font = '11px "JetBrains Mono"';
+        ctx.textAlign = 'center';
+        ctx.fillText('Not enough pace points collected', canvas.width / 2, canvas.height / 2);
+        document.getElementById('resGraphPeak').textContent = `Peak: ${data[0] || 0} WPM`;
+        return;
+      }
+
+      const maxVal = Math.max(...data, 10);
+      document.getElementById('resGraphPeak').textContent = `Peak: ${maxVal} WPM`;
+
+      const pad = 14;
+      const w = canvas.width - pad * 2;
+      const h = canvas.height - pad * 2;
+
+      ctx.beginPath();
+      ctx.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue('--color-main').trim() || '#e2b714';
+      ctx.lineWidth = 2.5;
+      ctx.lineJoin = 'round';
+
+      data.forEach((pt, i) => {
+        const x = pad + (i / (data.length - 1)) * w;
+        const y = canvas.height - pad - (pt / maxVal) * h;
+        if (i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      });
+      ctx.stroke();
+
+      ctx.lineTo(pad + w, canvas.height - pad);
+      ctx.lineTo(pad, canvas.height - pad);
+      ctx.closePath();
+      const grad = ctx.createLinearGradient(0, 0, 0, canvas.height);
+      grad.addColorStop(0, 'rgba(226, 183, 20, 0.25)');
+      grad.addColorStop(1, 'rgba(226, 183, 20, 0)');
+      ctx.fillStyle = grad;
+      ctx.fill();
+    }
+
+    /* -----------------------------------------------------------------
+     * 10. Copy Scorecard
+     * ----------------------------------------------------------------- */
+    function copyScoreCard() {
+      const summary = `⚡ LexiSprint [${state.lang.toUpperCase()}] — ${state.mode.toUpperCase()}\n` +
+                      `🎯 Words: ${state.score} | WPM: ${document.getElementById('resWpm').textContent}\n` +
+                      `🔥 Streak: ${state.maxStreak} | Acc: ${document.getElementById('resAccuracy').textContent}\n` +
+                      `Can you beat my speed?`;
+
+      const t = document.createElement('textarea');
+      t.value = summary;
+      document.body.appendChild(t);
+      t.select();
+      document.execCommand('copy');
+      document.body.removeChild(t);
+      showToast('Copied!', 'Score card copied to clipboard', '📋');
+    }
+
+    /* -----------------------------------------------------------------
+     * 11. Custom Deck Parser
+     * ----------------------------------------------------------------- */
+    function parseCustom(txt) {
+      const lines = txt.split('\n');
+      const out = [];
+      lines.forEach(l => {
+        const parts = l.split('-');
+        if (parts.length >= 2) {
+          const q = parts[0].trim();
+          const rest = parts.slice(1).join('-').split(',').map(s => s.trim()).filter(Boolean);
+          if (q && rest.length > 0) {
+            out.push({ prompt: q, answers: rest, ex: `Custom card: ${q}`, voiceLang: 'en-US' });
+          }
+        }
+      });
+      return out;
+    }
+
+    /* -----------------------------------------------------------------
+     * 12. Input & Keyboard Events
+     * ----------------------------------------------------------------- */
+    const inputField = document.getElementById('typingInput');
+
+    inputField.addEventListener('keydown', (e) => {
+      if (e.key !== 'Control' && e.key !== 'Shift' && e.key !== 'Alt') {
+        audio.playSwitch(state.sound);
+      }
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        submitAnswer();
+      } else if (e.key === 'Tab') {
+        e.preventDefault();
+        skipCard();
+      } else if (e.ctrlKey && e.code === 'Space') {
+        e.preventDefault();
+        activateHint();
+      }
+    });
+
+    // Global Key Listener for Quick Start & Navigation
+    window.addEventListener('keydown', (e) => {
+      // Space or Enter on start overlay starts the game
+      if (!state.isActive && !document.getElementById('startBannerOverlay').classList.contains('hidden')) {
+        if (e.code === 'Space' || e.key === 'Enter') {
+          e.preventDefault();
+          launchGame();
+          return;
+        }
+      }
+      // Enter on results screen replays
+      if (!state.isActive && !document.getElementById('resultsScreen').classList.contains('hidden')) {
+        if (e.code === 'Space' || e.key === 'Enter') {
+          e.preventDefault();
+          launchGame();
+          return;
+        }
+      }
+      // Esc resets to Lobby
+      if (e.key === 'Escape') {
+        if (state.isActive) {
+          terminateGame();
+        } else {
+          document.getElementById('resultsScreen').classList.add('hidden');
+          document.getElementById('gameArena').classList.add('hidden');
+          document.getElementById('startBannerOverlay').classList.remove('hidden');
+          document.getElementById('liveHud').classList.add('opacity-20', 'pointer-events-none');
+        }
+      }
+    });
+
+    /* -----------------------------------------------------------------
+     * 13. Dropdowns & Controls Wiring
+     * ----------------------------------------------------------------- */
+    // Helper to close all dropdowns
+    function closeAllDropdowns() {
+      document.querySelectorAll('.dropdown-group > div').forEach(d => d.classList.add('hidden'));
+    }
+
+    // Toggle Dropdown logic
+    function setupDropdown(btnId, dropdownId) {
+      const btn = document.getElementById(btnId);
+      const dropdown = document.getElementById(dropdownId);
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const isClosed = dropdown.classList.contains('hidden');
+        closeAllDropdowns();
+        if (isClosed) dropdown.classList.remove('hidden');
+      });
+    }
+
+    setupDropdown('langMenuBtn', 'langMenuDropdown');
+    setupDropdown('modeMenuBtn', 'modeMenuDropdown');
+    setupDropdown('packMenuBtn', 'packMenuDropdown');
+    setupDropdown('soundMenuBtn', 'soundMenuDropdown');
+    setupDropdown('themeMenuBtn', 'themeMenuDropdown');
+
+    // Close on outside click
+    window.addEventListener('click', () => {
+      closeAllDropdowns();
+    });
+
+    // Populate Languages Dropdown
+    const langDropdown = document.getElementById('langMenuDropdown');
+    Object.keys(LANGUAGES_META).forEach(code => {
+      const item = LANGUAGES_META[code];
+      const b = document.createElement('button');
+      b.className = 'lang-item text-left px-3 py-2 rounded-xl text-xs hover:bg-theme-main hover:text-theme-bg font-medium transition flex items-center justify-between';
+      b.innerHTML = `<span>${item.flag} ${item.name}</span><span class="text-[10px] opacity-60 uppercase font-mono">${code}</span>`;
+      b.addEventListener('click', () => {
+        state.lang = code;
+        document.getElementById('activeLangLabel').textContent = item.name;
+        document.getElementById('badgeSummaryLang').textContent = `🌐 ${item.name}`;
+        updateDirectionLabel();
+        document.getElementById('hudHighScore').textContent = readHighScore();
+        closeAllDropdowns();
+      });
+      langDropdown.appendChild(b);
+    });
+
+    // Mode Selection
+    document.querySelectorAll('.mode-item').forEach(b => {
+      b.addEventListener('click', () => {
+        state.mode = b.getAttribute('data-mode');
+        const text = b.textContent.trim().split(' ')[1] || b.textContent.trim();
+        document.getElementById('activeModeLabel').textContent = text;
+        document.getElementById('badgeSummaryMode').textContent = `⚙️ ${text}`;
+        document.getElementById('hudHighScore').textContent = readHighScore();
+        closeAllDropdowns();
+      });
+    });
+
+    // Pack Selection
+    document.querySelectorAll('.pack-item').forEach(b => {
+      b.addEventListener('click', () => {
+        state.pack = b.getAttribute('data-pack');
+        const text = b.textContent.trim();
+        document.getElementById('activePackLabel').textContent = text;
+        document.getElementById('badgeSummaryPack').textContent = `📊 ${text}`;
+        document.getElementById('hudHighScore').textContent = readHighScore();
+        closeAllDropdowns();
+      });
+    });
+
+    // Sound Selection
+    document.querySelectorAll('.sound-item').forEach(b => {
+      b.addEventListener('click', () => {
+        state.sound = b.getAttribute('data-sound');
+        document.getElementById('activeSoundLabel').textContent = b.textContent.trim();
+        audio.init();
+        audio.playSwitch(state.sound);
+        closeAllDropdowns();
+      });
+    });
+
+    // Theme Selection
+    document.querySelectorAll('.theme-item').forEach(b => {
+      b.addEventListener('click', () => {
+        state.theme = b.getAttribute('data-theme');
+        document.getElementById('activeThemeLabel').textContent = b.textContent.trim();
+        if (state.theme === 'serika') document.documentElement.removeAttribute('data-theme');
+        else document.documentElement.setAttribute('data-theme', state.theme);
+        closeAllDropdowns();
+      });
+    });
+
+    // Direction Toggle
+    function updateDirectionLabel() {
+      const code = state.lang.toUpperCase();
+      const txt = state.direction === 'forward' ? `EN ➜ ${code}` : `${code} ➜ EN`;
+      document.getElementById('activeDirectionLabel').textContent = txt;
+    }
+
+    document.getElementById('directionToggleBtn').addEventListener('click', () => {
+      state.direction = state.direction === 'forward' ? 'reverse' : 'forward';
+      updateDirectionLabel();
+      document.getElementById('hudHighScore').textContent = readHighScore();
+    });
+
+    // Big START Button
+    document.getElementById('hugeStartBtn').addEventListener('click', () => {
+      audio.init();
+      launchGame();
+    });
+    document.getElementById('quickRestartBtn').addEventListener('click', launchGame);
+
+    // Voice & Hints
+    document.getElementById('voiceBtn').addEventListener('click', () => {
+      if (state.currentCard) pronounceWord(state.currentCard.prompt, state.currentCard.voiceLang);
+    });
+    document.getElementById('hintBtn').addEventListener('click', activateHint);
+    document.getElementById('skipActionBtn').addEventListener('click', skipCard);
+    document.getElementById('shareScoreBtn').addEventListener('click', copyScoreCard);
+
+    document.getElementById('trainMistakesBtn').addEventListener('click', () => {
+      state.mode = 'mistakes';
+      document.getElementById('activeModeLabel').textContent = 'Mistakes';
+      launchGame();
+    });
+
+    // Brand reset to Lobby
+    document.getElementById('brandReset').addEventListener('click', () => {
+      if (state.isActive) terminateGame();
+      document.getElementById('resultsScreen').classList.add('hidden');
+      document.getElementById('gameArena').classList.add('hidden');
+      document.getElementById('startBannerOverlay').classList.remove('hidden');
+      document.getElementById('liveHud').classList.add('opacity-20', 'pointer-events-none');
+    });
+
+    // Custom Deck Import Modal
+    const importModal = document.getElementById('importModal');
+    document.getElementById('openImportBtn').addEventListener('click', () => {
+      importModal.classList.remove('hidden');
+      document.getElementById('customImportArea').focus();
+    });
+    document.getElementById('closeImportBtn').addEventListener('click', () => importModal.classList.add('hidden'));
+    document.getElementById('cancelImportBtn').addEventListener('click', () => importModal.classList.add('hidden'));
+
+    document.getElementById('saveImportBtn').addEventListener('click', () => {
+      const text = document.getElementById('customImportArea').value.trim();
+      const parsed = parseCustom(text);
+      if (parsed.length > 0) {
+        state.customList = parsed;
+        state.pack = 'custom';
+        document.getElementById('activePackLabel').textContent = `Custom (${parsed.length})`;
+        document.getElementById('badgeSummaryPack').textContent = `📊 Custom (${parsed.length})`;
+        importModal.classList.add('hidden');
+        showToast('Deck Saved', `Loaded ${parsed.length} custom cards. Hit Start!`, '✅');
+      } else {
+        showToast('Format error', 'Use format: word - translation', '⚠️');
+      }
+    });
+
+    // Initialize UI on load
+    window.addEventListener('DOMContentLoaded', () => {
+      updateStreakDisplay();
+      updateDirectionLabel();
+      document.getElementById('hudHighScore').textContent = readHighScore();
+    });
+  </script>
+</body>
+</html>
